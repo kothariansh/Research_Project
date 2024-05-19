@@ -56,3 +56,34 @@ def perturb_tensor(tensor, percentage, max_perturbation_degree=0.1):
         tensor[idx] = torch.clamp(tensor[idx] + perturbation, 0.0, 1.0)
     
     return tensor
+
+def locally_perturb_tensor(tensor, percentage, max_perturbation_degree=0.1):
+    """
+    Randomly perturbs a sector of spatially close rows in a given tensor to varying degrees.
+
+    Parameters:
+    - tensor: torch.Tensor, the tensor to perturb (each row is an [x, y] point)
+    - percentage: float, percentage of rows to perturb
+    - max_perturbation_degree: float, maximum perturbation degree, default is 0.1
+    """
+    # Calculate the number of rows to perturb
+    num_rows = int(tensor.size(0) * (percentage / 100))
+    
+    # Choose a random center point
+    center_idx = np.random.choice(tensor.size(0), 1)[0]
+    center_point = tensor[center_idx]
+    
+    # Calculate distances from the center point to all other points
+    distances = torch.norm(tensor - center_point, dim=1)
+    
+    # Select the indices of the closest `num_rows` points
+    indices_to_perturb = torch.argsort(distances)[:num_rows].tolist()
+    
+    for idx in indices_to_perturb:
+        # Generate a random perturbation magnitude between 0 and max_perturbation_degree
+        perturbation_magnitude = torch.rand(1).item() * max_perturbation_degree
+        # Apply the perturbation with the generated magnitude
+        perturbation = (torch.rand(tensor[idx].shape) - 0.5) * 2 * perturbation_magnitude
+        tensor[idx] = torch.clamp(tensor[idx] + perturbation, 0.0, 1.0)
+    
+    return tensor
