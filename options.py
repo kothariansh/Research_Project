@@ -57,7 +57,7 @@ def get_options(args=None):
     parser.add_argument('--data_distribution', type=str, default=None,
                         help='Data distribution to use during training, defaults and options depend on problem.')
     parser.add_argument('--edit_fn', type=str, default=None,
-                        help="Dual curriculum edit function to use: 'global_perturb', 'local_perturb' or 'random_edit'."
+                        help="Dual curriculum edit function to use: 'global_perturb', 'local_perturb' or 'random_edit'. "
                              'Defaults to no edit function. Only available for tsp problem.')
 
     # Misc
