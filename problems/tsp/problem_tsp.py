@@ -52,18 +52,40 @@ class TSP(object):
         return beam_search(state, beam_size, propose_expansions)
 
 
+import torch
+from torch.utils.data import Dataset
 class TSPDataset(Dataset):
     
-    def __init__(self, filename=None, size=50, num_samples=1000000, offset=0, distribution=None):
+    def __init__(self, directory_path=None, filename=None, size=50, num_samples=1000000, offset=0, distribution=None):
         super(TSPDataset, self).__init__()
 
-        self.data_set = []
-        if filename is not None:
-            assert os.path.splitext(filename)[1] == '.pkl'
+        self.data = []
+        self.filename_map = {}
 
-            with open(filename, 'rb') as f:
-                data = pickle.load(f)
-                self.data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
+        if directory_path is not None:
+            # Load all .npy files from the directory
+            for file in glob.glob(os.path.join(directory_path, '*.npy')):
+                if file.endswith('sol.npy'):
+                    continue
+                np_data = np.load(file)
+                tensor_data = [torch.FloatTensor(row) for row in np_data]
+                self.data.append(tensor_data)
+
+            # Store the filename index mapping
+            for idx in range(len(tensor_data)):
+                self.filename_map[len(self.data) - len(tensor_data) + idx] = os.path.basename(file)
+
+        elif filename is not None:
+            if filename.endswith('.npy'):
+                assert os.path.splitext(filename)[1] == '.npy'
+                
+                self.data = [torch.Tensor(row) for row in np.load(filename)]
+            elif filename.endswith('.pkl'):
+                assert os.path.splitext(filename)[1] == '.pkl'
+
+                with open(filename, 'rb') as f:
+                    data = pickle.load(f)
+                    self.data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
         else:
             # Sample points randomly in [0, 1] square
             self.data = [torch.FloatTensor(size, 2).uniform_(0, 1) for i in range(num_samples)]
