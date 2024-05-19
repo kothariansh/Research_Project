@@ -52,23 +52,26 @@ class TSP(object):
         return beam_search(state, beam_size, propose_expansions)
 
 
+import torch
+from torch.utils.data import Dataset
 class TSPDataset(Dataset):
     
     def __init__(self, filename=None, size=50, num_samples=1000000, offset=0, distribution=None):
         super(TSPDataset, self).__init__()
 
         self.data_set = []
-        if filename.endswith('.npy'):
-            assert os.path.splitext(filename)[1] == '.npy'
-            
-            self.data = [torch.Tensor(row) for row in np.load(filename)]
-            
-        elif filename is not None:
-            assert os.path.splitext(filename)[1] == '.pkl'
 
-            with open(filename, 'rb') as f:
-                data = pickle.load(f)
-                self.data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
+        if filename is not None:
+            if filename.endswith('.npy'):
+                assert os.path.splitext(filename)[1] == '.npy'
+                
+                self.data = [torch.Tensor(row) for row in np.load(filename)]
+            elif filename.endswith('.pkl'):
+                assert os.path.splitext(filename)[1] == '.pkl'
+
+                with open(filename, 'rb') as f:
+                    data = pickle.load(f)
+                    self.data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
         else:
             # Sample points randomly in [0, 1] square
             self.data = [torch.FloatTensor(size, 2).uniform_(0, 1) for i in range(num_samples)]
