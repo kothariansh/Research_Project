@@ -58,6 +58,7 @@ def random_edit_tensor(tensor, percentage):
     Randomly edits a percentage of rows in a given tensor.
     """
     # Calculate the number of rows to edit
+    assert 0 <= percentage <= 100, "Percentage must be between 0 and 100"
     num_rows = int(tensor.size(0) * (percentage / 100))
 
     # Select random indices to edit

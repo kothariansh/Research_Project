@@ -155,17 +155,18 @@ def train_epoch(
     num_replace = train_reward.size(0) // 2
     low_idx = sorted_idx[:num_replace]
     high_idx = sorted_idx[num_replace:num_replace*2]
-    replace_idx = torch.randint(0, training_dataset.size(0), (num_replace,))
+    replace_val = [
+        training_dataset[i] for i in torch.randint(0, training_dataset.size, (num_replace,))
+    ]
 
-    training_dataset_new = training_dataset.clone()
     for i in range(num_replace):
         # Replace low_idx entries with edited high_idx entries
-        training_dataset_new[low_idx[i]] = edit_function(training_dataset[high_idx[i]])
+        training_dataset[low_idx[i]] = edit_function(training_dataset[high_idx[i]], 10)
 
         # Replace high_idx entries with uniform sample from training_dataset
-        training_dataset_new[high_idx[i]] = training_dataset[replace_idx[i]]
+        training_dataset[high_idx[i]] = replace_val[i]
     
-    return training_dataset_new
+    return training_dataset
 
 
 def train_batch(
