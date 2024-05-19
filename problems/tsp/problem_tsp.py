@@ -58,7 +58,12 @@ class TSPDataset(Dataset):
         super(TSPDataset, self).__init__()
 
         self.data_set = []
-        if filename is not None:
+        if filename.endswith('.npy'):
+            assert os.path.splitext(filename)[1] == '.npy'
+            
+            self.data = [torch.Tensor(row) for row in np.load(filename)]
+            
+        elif filename is not None:
             assert os.path.splitext(filename)[1] == '.pkl'
 
             with open(filename, 'rb') as f:
