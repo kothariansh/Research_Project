@@ -1,14 +1,17 @@
-# run: conda env create --file environment.yml
-name: attention_tsp
+# Run: conda env create --file environment.yml
+name: dcd_tsp
 channels:
-- pytorch
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
 dependencies:
-- python>=3.8
-- anaconda
-- tqdm
-- pytorch
-- torchvision
-- cuda91
-- pip
-- pip:
-  - tensorboard_logger
+  - python=3.10.13
+  - anaconda
+  - tqdm
+  - pytorch=2.1.1
+  - pytorch-cuda=11.8
+  - torchvision
+  - pip
+  - pip:
+    - tensorboard_logger
