@@ -58,7 +58,7 @@ def get_options(args=None):
                         help='Data distribution to use during training, defaults and options depend on problem.')
     parser.add_argument('--edit_fn', type=str, default=None,
                         help="Dual curriculum edit function to use: 'global_perturb', 'local_perturb' or 'random_edit'."
-                             'Defaults to no edit function.')
+                             'Defaults to no edit function. Only available for tsp problem.')
 
     # Misc
     parser.add_argument('--log_step', type=int, default=50, help='Log info every log_step steps')
