@@ -75,3 +75,6 @@ class TSPDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.data[idx]
+    
+    def __setitem__(self, idx, value):
+        self.data[idx] = value

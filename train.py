@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torch.nn import DataParallel
 
 from nets.attention_model import set_decode_type
+from utils.level_edit import global_perturb_tensor, local_perturb_tensor, random_edit_tensor
 from utils.log_utils import log_values
 from utils import move_to
 
@@ -64,7 +65,18 @@ def clip_grad_norms(param_groups, max_norm=math.inf):
     return grad_norms, grad_norms_clipped
 
 
-def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, problem, tb_logger, opts):
+def train_epoch(
+        model,
+        optimizer,
+        baseline,
+        lr_scheduler,
+        epoch,
+        training_dataset,
+        val_dataset,
+        problem,
+        tb_logger,
+        opts
+):
     print("Start train epoch {}, lr={} for run {}".format(epoch, optimizer.param_groups[0]['lr'], opts.run_name))
     step = epoch * (opts.epoch_size // opts.batch_size)
     start_time = time.time()
@@ -73,9 +85,12 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
         tb_logger.log_value('learnrate_pg0', optimizer.param_groups[0]['lr'], step)
 
     # Generate new training data for each epoch
-    training_dataset = baseline.wrap_dataset(problem.make_dataset(
-        size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution))
-    training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size, num_workers=1)
+    if training_dataset == None:
+        training_dataset = problem.make_dataset(
+            size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution
+        )
+    training_dataset_wrapped = baseline.wrap_dataset(training_dataset)
+    training_dataloader = DataLoader(training_dataset_wrapped, batch_size=opts.batch_size, num_workers=1)
 
     # Put model in train mode!
     model.train()
@@ -113,15 +128,45 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
             os.path.join(opts.save_dir, 'epoch-{}.pt'.format(epoch))
         )
 
-    avg_reward = validate(model, val_dataset, opts)
-
     if not opts.no_tensorboard:
+        avg_reward = validate(model, val_dataset, opts)
         tb_logger.log_value('val_avg_reward', avg_reward, step)
 
     baseline.epoch_callback(model, epoch)
 
     # lr_scheduler should be called at end of epoch
     lr_scheduler.step()
+
+    # Edit and return new training data if applicable
+    # Only available for TSP problem
+    edit_function = opts.edit_fn
+    if edit_function == None or opts.problem != 'tsp':
+        return None
+    elif opts.edit_fn == 'global_perturb':
+        edit_function = global_perturb_tensor
+    elif opts.edit_fn == 'local_perturb':
+        edit_function = local_perturb_tensor
+    elif opts.edit_fn == 'random_edit':
+        edit_function = random_edit_tensor
+    
+    train_reward = rollout(model, training_dataset, opts)
+    sorted_idx = torch.argsort(train_reward)
+
+    num_replace = train_reward.size(0) // 2
+    low_idx = sorted_idx[:num_replace]
+    high_idx = sorted_idx[num_replace:num_replace*2]
+    replace_val = [
+        training_dataset[i] for i in torch.randint(0, training_dataset.size, (num_replace,))
+    ]
+
+    for i in range(num_replace):
+        # Replace low_idx entries with edited high_idx entries
+        training_dataset[low_idx[i]] = edit_function(training_dataset[high_idx[i]], 10)
+
+        # Replace high_idx entries with uniform sample from training_dataset
+        training_dataset[high_idx[i]] = replace_val[i]
+    
+    return training_dataset
 
 
 def train_batch(
