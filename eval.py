@@ -11,7 +11,9 @@ from torch.utils.data import DataLoader
 import time
 from datetime import timedelta
 from utils.functions import parse_softmax_temperature
+from problems.tsp.problem_tsp import TSPDataset
 mp = torch.multiprocessing.get_context('spawn')
+import pickle as pkl
 
 
 def get_best(sequences, cost, ids=None, batch_size=None):
@@ -66,7 +68,11 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
 
     else:
         device = torch.device("cuda:0" if use_cuda else "cpu")
-        dataset = model.problem.make_dataset(filename=dataset_path, num_samples=opts.val_size, offset=opts.offset)
+        if not bool(opts.load_TSPDataset):
+            dataset = model.problem.make_dataset(filename=dataset_path, num_samples=opts.val_size, offset=opts.offset)
+        else:
+            with open(dataset_path, 'rb') as f:
+                dataset = pkl.load(f)
         results = _eval_dataset(model, dataset, width, softmax_temp, opts, device)
 
     # This is parallelism, even if we use multiprocessing (we report as if we did not use multiprocessing, e.g. 1 GPU)
@@ -185,6 +191,8 @@ if __name__ == "__main__":
     parser.add_argument('--offset', type=int, default=0,
                         help='Offset where to start in dataset (default 0)')
     parser.add_argument('--eval_batch_size', type=int, default=1024,
+                        help="Batch size to use during (baseline) evaluation")
+    parser.add_argument('--load_TSPDataset', type=str, choices=["true", "false"],
                         help="Batch size to use during (baseline) evaluation")
     # parser.add_argument('--decode_type', type=str, default='greedy',
     #                     help='Decode type, greedy or sampling')

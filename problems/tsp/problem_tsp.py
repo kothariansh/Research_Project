@@ -56,16 +56,18 @@ import torch
 from torch.utils.data import Dataset
 class TSPDataset(Dataset):
     
-    def __init__(self, directory_path=None, filename=None, size=50, num_samples=1000000, offset=0, distribution=None):
+    def __init__(self, directory_path=None, filename=None, size=4, num_samples=6, offset=0, distribution=None):
         super(TSPDataset, self).__init__()
 
         self.data = []
+        self.best = []
         self.filename_map = {}
 
         if directory_path is not None:
             # Load all .npy files from the directory
             for file in glob.glob(os.path.join(directory_path, '*.npy')):
                 if file.endswith('sol.npy'):
+                    self.best.append(np.load(file))
                     continue
                 np_data = np.load(file)
                 tensor_data = [torch.FloatTensor(row) for row in np_data]
