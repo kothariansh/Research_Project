@@ -9,6 +9,7 @@ from torch.nn import DataParallel
 
 from nets.attention_model import set_decode_type
 from utils.level_edit import global_perturb_tensor, local_perturb_tensor, random_edit_tensor
+from utils.transformations import transform_tensor_batch
 from utils.log_utils import log_values
 from utils import move_to
 
@@ -181,6 +182,12 @@ def train_batch(
         opts
 ):
     x, bl_val = baseline.unwrap_batch(batch)
+
+    # Apply data transformations if specified
+    if opts.data_equivariance:
+        x = transform_tensor_batch(x)
+
+    # Move to GPU if available
     x = move_to(x, opts.device)
     bl_val = move_to(bl_val, opts.device) if bl_val is not None else None
 

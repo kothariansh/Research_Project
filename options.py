@@ -59,11 +59,14 @@ def get_options(args=None):
     parser.add_argument('--edit_fn', type=str, default=None,
                         help="Dual curriculum edit function to use: 'global_perturb', 'local_perturb' or 'random_edit'. "
                              'Defaults to no edit function. Only available for tsp problem.')
+    parser.add_argument('--data_equivariance', action='store_true',
+                        help='Apply rotational and translational invariance during training')
 
     # Misc
     parser.add_argument('--log_step', type=int, default=50, help='Log info every log_step steps')
     parser.add_argument('--log_dir', default='logs', help='Directory to write TensorBoard information to')
     parser.add_argument('--run_name', default='run', help='Name to identify the run')
+    parser.add_argument('--run_timestamp', action='store_true', help='Add a timestamp to the run name')
     parser.add_argument('--output_dir', default='outputs', help='Directory to write output models to')
     parser.add_argument('--epoch_start', type=int, default=0,
                         help='Start at epoch # (relevant for learning rate decay)')
@@ -77,7 +80,8 @@ def get_options(args=None):
     opts = parser.parse_args(args)
 
     opts.use_cuda = torch.cuda.is_available() and not opts.no_cuda
-    opts.run_name = "{}_{}".format(opts.run_name, time.strftime("%Y%m%dT%H%M%S"))
+    if opts.run_timestamp:
+        opts.run_name = "{}_{}".format(opts.run_name, time.strftime("%Y%m%dT%H%M%S"))
     opts.save_dir = os.path.join(
         opts.output_dir,
         "{}_{}".format(opts.problem, opts.graph_size),

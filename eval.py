@@ -7,6 +7,8 @@ import itertools
 from tqdm import tqdm
 from utils import load_model, move_to
 from utils.data_utils import save_dataset
+from utils.transformations import transform_tensor_batch
+from utils.local_search import tsp_length_batch, combined_local_search
 from torch.utils.data import DataLoader
 import time
 from datetime import timedelta
@@ -137,7 +139,12 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
                     iter_rep = 1
                 assert batch_rep > 0
                 # This returns (batch_size, iter_rep shape)
+                if opts.data_equivariance:
+                    batch = transform_tensor_batch(batch)
                 sequences, costs = model.sample_many(batch, batch_rep=batch_rep, iter_rep=iter_rep)
+                if opts.local_search:
+                    combined_local_search(batch, sequences)
+                    costs = tsp_length_batch(batch, sequences)
                 batch_size = len(costs)
                 ids = torch.arange(batch_size, dtype=torch.int64, device=costs.device)
             else:
@@ -186,13 +193,15 @@ if __name__ == "__main__":
                         help='Offset where to start in dataset (default 0)')
     parser.add_argument('--eval_batch_size', type=int, default=1024,
                         help="Batch size to use during (baseline) evaluation")
-    # parser.add_argument('--decode_type', type=str, default='greedy',
-    #                     help='Decode type, greedy or sampling')
     parser.add_argument('--width', type=int, nargs='+',
                         help='Sizes of beam to use for beam search (or number of samples for sampling), '
                              '0 to disable (default), -1 for infinite')
     parser.add_argument('--decode_strategy', type=str,
                         help='Beam search (bs), Sampling (sample) or Greedy (greedy)')
+    parser.add_argument('--data_equivariance', action='store_true',
+                        help='Apply rotational and translational invariance during evaluation')
+    parser.add_argument('--local_search', action='store_true',
+                        help='Apply a local search to optimize found paths')
     parser.add_argument('--softmax_temperature', type=parse_softmax_temperature, default=1,
                         help="Softmax temperature (sampling or bs)")
     parser.add_argument('--model', type=str)

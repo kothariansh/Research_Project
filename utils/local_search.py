@@ -24,7 +24,7 @@ def tsp_length_batch(positions, tour):
     - positions (torch.Tensor): A 3D tensor of shape (M, N, 2).
     - tour (torch.Tensor): A 2D tensor of shape (M, N).
     """
-    sorted_pos = torch.zeros(positions.shape, dtype=positions.dtype)
+    sorted_pos = torch.zeros(positions.shape, dtype=positions.dtype, device=positions.device)
     for i in range(positions.shape[0]):
         sorted_pos[i] = positions[i][tour[i]]
 
@@ -44,18 +44,19 @@ def _local_insert_batch(positions, tour, point):
     """
     # Safety check
     M, N = tour.shape
+    device = positions.device
     assert point >= 0 and point < N
 
     # Precompute distances of edges
-    idx = torch.arange(M)
-    edge_dists = torch.zeros((M, N))
+    idx = torch.arange(M, device=device)
+    edge_dists = torch.zeros((M, N), device=device)
     for i in range(N):
         edge_dists[:,i] = torch.linalg.norm(
             positions[idx,tour[idx,i],:] - positions[idx,tour[idx,(i+1) % N],:], axis=-1
         )
 
     # Calculate costs
-    costs = torch.zeros((M, N))
+    costs = torch.zeros((M, N), device=device)
     e1_start = positions[idx,tour[idx,point],:]
     e1_end = positions[idx,tour[idx,(point+1) % N],:]
     for i in range(N):
@@ -131,11 +132,12 @@ def _2opt_choice_batch(positions, tour, e1, e2):
 
     # Calculate ends of edges
     M, N = tour.shape
+    device = positions.device
     e1_end = (e1 + 1) % N
     e2_end = (e2 + 1) % N
 
     # Calculate old and new costs
-    idx = torch.arange(M)
+    idx = torch.arange(M, device=device)
     cost_old = torch.linalg.norm(positions[idx,tour[idx,e1],:] - positions[idx,tour[idx,e1_end],:], axis=-1) \
         + torch.linalg.norm(positions[idx,tour[idx,e2],:] - positions[idx,tour[idx,e2_end],:], axis=-1)
     cost_new = torch.linalg.norm(positions[idx,tour[idx,e1],:] - positions[idx,tour[idx,e2],:], axis=-1) \
@@ -160,11 +162,12 @@ def _2opt_search_batch(positions, tour, start):
     """
     # Safety check
     M, N = tour.shape
+    device = positions.device
     assert start >= 0 and start < N-2
 
     # Calculate costs
-    idx = torch.arange(M)
-    costs = torch.zeros((M, N-start-2))
+    idx = torch.arange(M, device=device)
+    costs = torch.zeros((M, N-start-2), device=device)
     e1_start = positions[idx,tour[idx,start],:]
     e1_end = positions[idx,tour[idx,start+1],:]
     e1_dist = torch.linalg.norm(e1_start - e1_end, axis=-1)
@@ -214,8 +217,8 @@ def random_2opt(positions, tours, alpha=0.5, beta=1.5):
     """
     M, N = tours.shape
     for i in range(int(alpha * (N ** beta))):
-        e1 = torch.randint(0, N, (M,))
-        e2 = torch.randint(0, N, (M,))
+        e1 = torch.randint(0, N, (M,), device=positions.device)
+        e2 = torch.randint(0, N, (M,), device=positions.device)
         _2opt_choice_batch(positions, tours, e1, e2)
 
 def search_2opt(positions, tours):
@@ -231,3 +234,21 @@ def search_2opt(positions, tours):
     M, N = tours.shape
     for i in range(N-2):
         _2opt_search_batch(positions, tours, i)
+
+def combined_local_search(positions, tour, iters=10, alpha=0.5, beta=1.5):
+    """
+    Conducts a combined local search on a batch of tours.
+
+    Args:
+    - positions (torch.Tensor): A 3D tensor of shape (M, N, 2) where M is the number of tours
+        in the batch and N is the number of points in each tour.
+    - tours (torch.Tensor): A 2D tensor of shape (M, N) where M is the number of tours and N
+        is the number of points in each tour.
+    - iters (Integer): Number of total iterations to conduct search
+    - alpha (Float): Hyperparameter controlling strength for random 2-opt
+    - beta (Float): Hyperparameter controlling strength for random 2-opt
+    """
+    for i in range(iters):
+        local_insertion(positions, tour)
+        random_2opt(positions, tour, alpha=alpha, beta=beta)
+        search_2opt(positions, tour)

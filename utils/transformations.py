@@ -20,7 +20,7 @@ def transform_tensor(tensor):
     rotation = torch.tensor([
         [torch.cos(angle), -torch.sin(angle)],
         [torch.sin(angle), torch.cos(angle)]
-    ])
+    ], device=tensor.device)
 
     rotated_coordinates = tensor @ rotation
 
@@ -49,7 +49,7 @@ def transform_tensor_batch(tensors):
     # Calculate and apply the desired rotation matrix
     # Note the signs, this matrix is post-multiplied
     angles -= (torch.pi / 4)
-    rotation = torch.zeros((M, 2, 2), dtype=tensors.dtype)
+    rotation = torch.zeros((M, 2, 2), dtype=tensors.dtype, device=tensors.device)
     rotation[:, 0, 0] = torch.cos(angles)
     rotation[:, 0, 1] = -torch.sin(angles)
     rotation[:, 1, 0] = torch.sin(angles)
