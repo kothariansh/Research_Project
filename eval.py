@@ -13,7 +13,9 @@ from torch.utils.data import DataLoader
 import time
 from datetime import timedelta
 from utils.functions import parse_softmax_temperature
+from problems.tsp.problem_tsp import TSPDataset
 mp = torch.multiprocessing.get_context('spawn')
+import pickle as pkl
 
 
 def get_best(sequences, cost, ids=None, batch_size=None):
@@ -68,7 +70,12 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
 
     else:
         device = torch.device("cuda:0" if use_cuda else "cpu")
-        dataset = model.problem.make_dataset(filename=dataset_path, num_samples=opts.val_size, offset=opts.offset)
+        if not bool(opts.load_TSPDataset):
+            dataset = model.problem.make_dataset(filename=dataset_path, num_samples=opts.val_size, offset=opts.offset)
+        else:
+            with open(dataset_path, 'rb') as f:
+                tspdataset = pkl.load(f)
+                dataset = tspdataset
         results = _eval_dataset(model, dataset, width, softmax_temp, opts, device)
 
     # This is parallelism, even if we use multiprocessing (we report as if we did not use multiprocessing, e.g. 1 GPU)
@@ -97,6 +104,7 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
     else:
         out_file = opts.o
 
+    print(out_file)
     assert opts.f or not os.path.isfile(
         out_file), "File already exists! Try running with -f option to overwrite."
 
@@ -114,11 +122,20 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
         "greedy" if opts.decode_strategy in ('bs', 'greedy') else "sampling",
         temp=softmax_temp)
 
-    dataloader = DataLoader(dataset, batch_size=opts.eval_batch_size)
+
+    if not bool(opts.load_TSPDataset):
+        dataloader = DataLoader(dataset, batch_size=opts.eval_batch_size)
+    else:
+        dataloader = dataset
 
     results = []
     for batch in tqdm(dataloader, disable=opts.no_progress_bar):
-        batch = move_to(batch, device)
+        
+        if not bool(opts.load_TSPDataset):
+            batch = move_to(batch, device)
+        if bool(opts.load_TSPDataset):
+            print(torch.stack(batch, dim=0)[None, :, :].shape)
+            batch = move_to(torch.stack(batch, dim=0)[None, :, :], device)
 
         start = time.time()
         with torch.no_grad():
@@ -192,6 +209,9 @@ if __name__ == "__main__":
     parser.add_argument('--offset', type=int, default=0,
                         help='Offset where to start in dataset (default 0)')
     parser.add_argument('--eval_batch_size', type=int, default=1024,
+                        help="Batch size to use during (baseline) evaluation")
+
+    parser.add_argument('--load_TSPDataset', type=str, choices=["true", "false"],
                         help="Batch size to use during (baseline) evaluation")
     parser.add_argument('--width', type=int, nargs='+',
                         help='Sizes of beam to use for beam search (or number of samples for sampling), '
