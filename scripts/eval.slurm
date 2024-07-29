@@ -19,11 +19,18 @@ cd /gscratch/socialrl/ml10872/tsp/Dual-Curriculum-TSP/
 conda activate dcd_tsp
 
 # Evaluation commands
-echo "TSP20 dcd_local without local search"
-python eval.py data/tsp/tsp20_test_seed1234.pkl --model outputs/tsp_20/dcd_local --decode_strategy greedy --eval_batch_size 1000 --data_equivariance
-echo "TSP20 baseline without local search"
-python eval.py data/tsp/tsp20_test_seed1234.pkl --model outputs/tsp_20/baseline --decode_strategy greedy --eval_batch_size 1000 --data_equivariance
-echo "TSP50 dcd_local with local search"
-python eval.py data/tsp/tsp50_test_seed1234.pkl --model outputs/tsp_50/dcd_local --decode_strategy greedy --eval_batch_size 1000 --data_equivariance --local_search
-echo "TSP50 baseline with local search"
-python eval.py data/tsp/tsp50_test_seed1234.pkl --model outputs/tsp_50/baseline --decode_strategy greedy --eval_batch_size 1000 --data_equivariance --local_search
+echo "TSP50 Vanilla"
+python eval.py data/tsp/tsp_gmm50_test_seed1234.pkl --model outputs/tsp_50/test_vanilla --decode_strategy greedy --eval_batch_size 1000 --oracle_baseline results/tsp/tsp_gmm50_test_seed1234/concorde_costs.pkl -f
+python eval.py data/tsp/tsp_unif50_test_seed1234.pkl --model outputs/tsp_50/test_vanilla --decode_strategy greedy --eval_batch_size 1000 --oracle_baseline results/tsp/tsp_unif50_test_seed1234/concorde_costs.pkl -f
+
+echo "TSP50 DCD"
+python eval.py data/tsp/tsp_gmm50_test_seed1234.pkl --model outputs/tsp_50/test_dcd --decode_strategy greedy --eval_batch_size 1000 --oracle_baseline results/tsp/tsp_gmm50_test_seed1234/concorde_costs.pkl -f
+python eval.py data/tsp/tsp_unif50_test_seed1234.pkl --model outputs/tsp_50/test_dcd --decode_strategy greedy --eval_batch_size 1000 --oracle_baseline results/tsp/tsp_unif50_test_seed1234/concorde_costs.pkl -f
+
+echo "TSP50 HAC"
+python eval.py data/tsp/tsp_gmm50_test_seed1234.pkl --model outputs/tsp_50/test_hac --decode_strategy greedy --eval_batch_size 1000 --oracle_baseline results/tsp/tsp_gmm50_test_seed1234/concorde_costs.pkl -f
+python eval.py data/tsp/tsp_unif50_test_seed1234.pkl --model outputs/tsp_50/test_hac --decode_strategy greedy --eval_batch_size 1000 --oracle_baseline results/tsp/tsp_unif50_test_seed1234/concorde_costs.pkl -f
+
+echo "TSP50 DCD + HAC"
+python eval.py data/tsp/tsp_gmm50_test_seed1234.pkl --model outputs/tsp_50/test_dcd_hac --decode_strategy greedy --eval_batch_size 1000 --oracle_baseline results/tsp/tsp_gmm50_test_seed1234/concorde_costs.pkl -f
+python eval.py data/tsp/tsp_unif50_test_seed1234.pkl --model outputs/tsp_50/test_dcd_hac --decode_strategy greedy --eval_batch_size 1000 --oracle_baseline results/tsp/tsp_unif50_test_seed1234/concorde_costs.pkl -f

@@ -1,5 +1,6 @@
 import os
 import time
+import random
 from tqdm import tqdm
 import torch
 import math
@@ -10,6 +11,7 @@ from torch.nn import DataParallel
 from nets.attention_model import set_decode_type
 from utils.level_edit import global_perturb_tensor, local_perturb_tensor, random_edit_tensor
 from utils.transformations import transform_tensor_batch
+from utils.hardness_adaptive import get_hard_samples
 from utils.log_utils import log_values
 from utils import move_to
 
@@ -90,6 +92,15 @@ def train_epoch(
         training_dataset = problem.make_dataset(
             size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution
         )
+    
+    # Randomly make half the data harder if hardness adaptive curriculum is used
+    if opts.hardness_adaptive:
+        random.shuffle(training_dataset.data)
+        mid = training_dataset.size // 2
+        hard_data = get_hard_samples(model, training_dataset.data[mid:], eps=5, device=opts.device, baseline=baseline)
+        training_dataset.data[mid:] = hard_data
+    
+    # Wrap dataset in DataLoader
     training_dataset_wrapped = baseline.wrap_dataset(training_dataset)
     training_dataloader = DataLoader(training_dataset_wrapped, batch_size=opts.batch_size, num_workers=1)
 
@@ -198,7 +209,16 @@ def train_batch(
     bl_val, bl_loss = baseline.eval(x, cost) if bl_val is None else (bl_val, 0)
 
     # Calculate loss
-    reinforce_loss = ((cost - bl_val) * log_likelihood).mean()
+    loss = (cost - bl_val) * log_likelihood
+    if opts.hardness_adaptive:
+        w = ((cost/bl_val) * log_likelihood).detach()
+        t = torch.FloatTensor([20-(epoch % 20)]).to(loss.device)
+        w = torch.tanh(w)
+        w /= t
+        w = torch.nn.functional.softmax(w, dim=0)
+        reinforce_loss = (w * loss).sum()
+    else:
+        reinforce_loss = (loss).mean()
     loss = reinforce_loss + bl_loss
 
     # Perform backward pass and optimization step

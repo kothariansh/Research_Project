@@ -93,12 +93,12 @@ python eval.py <DATA-FILE> --model <MODEL-FILE> --decode_strategy greedy --eval_
 
 Example usage:
 ```
-python eval.py data/tsp/tsp100_test_seed1234.pkl --model outputs/tsp_100/tsp100_dcd_global --decode_strategy greedy --eval_batch_size 128
+python eval.py data/tsp/tsp_unif100_test_seed1234.pkl --model outputs/tsp_100/tsp100_dcd_global --decode_strategy greedy --eval_batch_size 128
 ```
 
 Example using a specific epoch and saving to a specific result name (note that setting `--width 0` is necessary for using `-o`):
 ```
-python eval.py data/tsp/tsp100_test_seed1234.pkl --model outputs/tsp_100/tsp100_default/epoch-50.pt -o results/tsp/tsp20_test_seed1234_epochs/tsp100_default_epoch-50.pkl --width 0 --decode_strategy greedy --eval_batch_size 128
+python eval.py data/tsp/tsp_unif100_test_seed1234.pkl --model outputs/tsp_100/tsp100_default/epoch-50.pt -o results/tsp/tsp20_test_seed1234_epochs/tsp100_default_epoch-50.pkl --width 0 --decode_strategy greedy --eval_batch_size 128
 ```
 
 To use a "oracle baseline" for computing gap, add the following flag:
@@ -116,14 +116,14 @@ python concorde_baseline.py --data_path <DATA-FILE>
 #### Sampling
 To report the best of 1280 sampled solutions, use
 ```
-python eval.py data/tsp/tsp20_test_seed1234.pkl --model pretrained/tsp_20 --decode_strategy sample --width 1280 --eval_batch_size 1
+python eval.py data/tsp/tsp_unif20_test_seed1234.pkl --model pretrained/tsp_20 --decode_strategy sample --width 1280 --eval_batch_size 1
 ```
 Beam Search can be used using `--decode_strategy bs --width <BEAM-SIZE>`.
 
 #### Baselines
 Baselines for different problems are within the corresponding folders and can be ran (on multiple datasets at once) as follows
 ```
-python -m problems.tsp.tsp_baseline farthest_insertion data/tsp/tsp20_test_seed1234.pkl data/tsp/tsp50_test_seed1234.pkl data/tsp/tsp100_test_seed1234.pkl
+python -m problems.tsp.tsp_baseline farthest_insertion data/tsp/tsp_unif20_test_seed1234.pkl data/tsp/tsp_unif50_test_seed1234.pkl data/tsp/tsp_unif100_test_seed1234.pkl
 ```
 To run baselines, you need to install [Compass](https://github.com/bcamath-ds/compass) by running the `install_compass.sh` script from within the `problems/op` directory and [Concorde](http://www.math.uwaterloo.ca/tsp/concorde.html) using the `install_concorde.sh` script from within `problems/tsp`. [LKH3](http://akira.ruc.dk/~keld/research/LKH-3/) should be automatically downloaded and installed when required. To use [Gurobi](http://www.gurobi.com), obtain a ([free academic](http://www.gurobi.com/registration/academic-license-reg)) license and follow the [installation instructions](https://www.gurobi.com/documentation/8.1/quickstart_windows/installing_the_anaconda_py.html).
 

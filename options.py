@@ -59,6 +59,7 @@ def get_options(args=None):
     parser.add_argument('--edit_fn', type=str, default=None,
                         help="Dual curriculum edit function to use: 'global_perturb', 'local_perturb' or 'random_edit'. "
                              'Defaults to no edit function. Only available for tsp problem.')
+    parser.add_argument('--hardness_adaptive', action='store_true', help='Use hardness adaptive curriculum')
     parser.add_argument('--data_equivariance', action='store_true',
                         help='Apply rotational and translational invariance during training')
 
