@@ -2,9 +2,20 @@ import argparse
 import os
 import numpy as np
 from utils.data_utils import check_extension, save_dataset
+from utils.distributions import gaussian_mixture_batch
 
 
-def generate_tsp_data(dataset_size, tsp_size):
+def generate_tsp_data(dataset_size, tsp_size, distribution='unif'):
+    # Gaussian mixture distribution
+    if distribution == 'gmm':
+        cdist_list = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        split_size = dataset_size // len(cdist_list)
+        res = []
+        for cdist in cdist_list:
+            res.append(gaussian_mixture_batch(split_size, tsp_size, cdist))
+        return np.concatenate(res, axis=0).tolist()
+    
+    # Uniform distribution, default
     return np.random.uniform(size=(dataset_size, tsp_size, 2)).tolist()
 
 
@@ -116,7 +127,7 @@ if __name__ == "__main__":
         "Can only specify filename when generating a single dataset"
 
     distributions_per_problem = {
-        'tsp': [None],
+        'tsp': ['unif', 'gmm'],
         'vrp': [None],
         'pctsp': [None],
         'op': ['const', 'unif', 'dist']
@@ -151,7 +162,7 @@ if __name__ == "__main__":
 
                 np.random.seed(opts.seed)
                 if problem == 'tsp':
-                    dataset = generate_tsp_data(opts.dataset_size, graph_size)
+                    dataset = generate_tsp_data(opts.dataset_size, graph_size, distribution=distribution)
                 elif problem == 'vrp':
                     dataset = generate_vrp_data(
                         opts.dataset_size, graph_size)
@@ -162,6 +173,5 @@ if __name__ == "__main__":
                 else:
                     assert False, "Unknown problem: {}".format(problem)
 
-                print(dataset[0])
-
+                print(f"Saving dataset to {filename}")
                 save_dataset(dataset, filename)

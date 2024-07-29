@@ -57,6 +57,7 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
     # Even with multiprocessing, we load the model here since it contains the name where to write results
     model, _ = load_model(opts.model)
     use_cuda = torch.cuda.is_available() and not opts.no_cuda
+    use_oracle = opts.oracle_baseline is not None
     if opts.multiprocessing:
         assert use_cuda, "Can only do multiprocessing with cuda"
         num_processes = torch.cuda.device_count()
@@ -70,12 +71,21 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
 
     else:
         device = torch.device("cuda:0" if use_cuda else "cpu")
+
+        # Load appropriate dataset
         if not bool(opts.load_TSPDataset):
             dataset = model.problem.make_dataset(filename=dataset_path, num_samples=opts.val_size, offset=opts.offset)
         else:
             with open(dataset_path, 'rb') as f:
-                tspdataset = pkl.load(f)
-                dataset = tspdataset
+                dataset = pkl.load(f)
+        
+        # Load oracle if necessary
+        if use_oracle:
+            with open(opts.oracle_baseline, 'rb') as f:
+                oracle_baseline = pkl.load(f)
+            assert len(oracle_baseline) == len(dataset), "Oracle baseline does not have same number of entries as dataset"
+        
+        # Evaluate model on dataset
         results = _eval_dataset(model, dataset, width, softmax_temp, opts, device)
 
     # This is parallelism, even if we use multiprocessing (we report as if we did not use multiprocessing, e.g. 1 GPU)
@@ -83,6 +93,17 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
 
     costs, tours, durations = zip(*results)  # Not really costs since they should be negative
 
+    # Print gap-based stats if applicable
+    if use_oracle and oracle_baseline is not None:
+        oracle_costs = np.array(oracle_baseline)
+        gap = costs - oracle_costs
+        gap_rel = gap / oracle_costs * 100
+        print("Average relative gap: {}% +- {}%".format(np.mean(gap_rel), 2 * np.std(gap_rel) / np.sqrt(len(gap_rel))))
+        print("Gap stats: min {}, max {}, mean {}, std {}".format(
+            np.min(gap), np.max(gap), np.mean(gap), np.std(gap)
+        ))
+
+    # Print general stats
     print("Average cost: {} +- {}".format(np.mean(costs), 2 * np.std(costs) / np.sqrt(len(costs))))
     print("Average serial duration: {} +- {}".format(
         np.mean(durations), 2 * np.std(durations) / np.sqrt(len(durations))))
@@ -224,6 +245,7 @@ if __name__ == "__main__":
                         help='Apply a local search to optimize found paths')
     parser.add_argument('--softmax_temperature', type=parse_softmax_temperature, default=1,
                         help="Softmax temperature (sampling or bs)")
+    parser.add_argument('--oracle_baseline', type=str, default=None, help='Oracle baseline for computing gap statistics')
     parser.add_argument('--model', type=str)
     parser.add_argument('--no_cuda', action='store_true', help='Disable CUDA')
     parser.add_argument('--no_progress_bar', action='store_true', help='Disable progress bar')
