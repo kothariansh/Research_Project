@@ -20,9 +20,9 @@ conda activate dcd_tsp
 
 # Training commands
 echo "TRAINING TSP50"
-python run.py --problem tsp --graph_size 50 --baseline rollout --hardness_adaptive --epoch_size 65536 --batch_size 1024 --n_epochs 60 --checkpoint_epochs 10 --lr_decay 0.98 --ewc_lambda 1 --pretrain_path pretrained/tsp_50 --run_name ewc_1
-python run.py --problem tsp --graph_size 50 --baseline rollout --hardness_adaptive --epoch_size 65536 --batch_size 1024 --n_epochs 60 --checkpoint_epochs 10 --lr_decay 0.98 --ewc_lambda 10 --pretrain_path pretrained/tsp_50 --run_name ewc_10
-python run.py --problem tsp --graph_size 50 --baseline rollout --hardness_adaptive --epoch_size 65536 --batch_size 1024 --n_epochs 60 --checkpoint_epochs 10 --lr_decay 0.98 --ewc_lambda 100 --pretrain_path pretrained/tsp_50 --run_name ewc_100
+python run.py --problem tsp --graph_size 50 --baseline rollout --hardness_adaptive --epoch_size 65536 --batch_size 1024 --n_epochs 71 --checkpoint_epochs 10 --lr_decay 0.98 --ewc_lambda 1 --pretrain_path pretrained/tsp_50 --run_name ewc_1
+python run.py --problem tsp --graph_size 50 --baseline rollout --hardness_adaptive --epoch_size 65536 --batch_size 1024 --n_epochs 71 --checkpoint_epochs 10 --lr_decay 0.98 --ewc_lambda 10 --pretrain_path pretrained/tsp_50 --run_name ewc_10
+python run.py --problem tsp --graph_size 50 --baseline rollout --hardness_adaptive --epoch_size 65536 --batch_size 1024 --n_epochs 71 --checkpoint_epochs 10 --lr_decay 0.98 --ewc_lambda 100 --pretrain_path pretrained/tsp_50 --run_name ewc_100
 
 # Evaluation commands
 echo "EVALUATING TSP50 EWC"
