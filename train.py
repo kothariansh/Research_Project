@@ -180,7 +180,7 @@ def train_epoch(
         ewc_dataset_new = []
         for i in range(opts.ewc_fisher_n):
             ewc_dataset_new.append(training_dataset[sorted_idx[i]])
-        ewc_dataset = torch.stack(ewc_dataset_new, dim=0, device=opts.device)
+        ewc_dataset = torch.stack(ewc_dataset_new, dim=0).to(opts.device)
 
     # Calculate new training data if applicable
     # Only available for TSP problem
