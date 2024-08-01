@@ -3,7 +3,6 @@ from torch import nn
 from torch.nn import functional as F
 from torch.autograd import Variable
 from copy import deepcopy
-from train import rollout
 
 
 def variable(t: torch.Tensor, device=None, **kwargs):
@@ -12,34 +11,30 @@ def variable(t: torch.Tensor, device=None, **kwargs):
 
 
 class EWC(object):
-    def __init__(self, model, bl_model, dataset, opts, ewc_lambda=100):
+    def __init__(self, model, bl_cost, dataset, opts, ewc_lambda=100):
 
         self.model = model
-        self.bl_model = bl_model
+        self.bl_cost = bl_cost
         self.dataset = dataset
-        self.opts = opts
+        self.device = opts.device
 
         self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}
         self._means = {}
         self._precision_matrices = self._diag_fisher()
 
         for n, p in deepcopy(self.params).items():
-            self._means[n] = variable(p.data, device=self.opts.device)
+            self._means[n] = variable(p.data, device=self.device)
 
     def _diag_fisher(self):
         precision_matrices = {}
         for n, p in deepcopy(self.params).items():
             p.data.zero_()
-            precision_matrices[n] = variable(p.data, device=self.opts.device)
-
-        bl_cost = 0
-        if self.bl_model is not None:
-            bl_cost = rollout(self.bl_model, self.dataset, self.opts)
+            precision_matrices[n] = variable(p.data, device=self.device)
 
         self.model.eval()
         self.model.zero_grad()
         cost, log_likelihood = self.model(input)
-        loss = (cost - bl_cost) * log_likelihood
+        loss = (cost - self.bl_cost) * log_likelihood
         loss.backward()
 
         for n, p in self.model.named_parameters():

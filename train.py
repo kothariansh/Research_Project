@@ -104,11 +104,14 @@ def train_epoch(
     # Initialize EWC if applicable
     ewc = None
     if opts.ewc_lambda > 0:
-        bl_model = baseline.model if (baseline is not None and hasattr(baseline, 'model')) else None
+        ewc_dataset = torch.FloatTensor(1024, opts.graph_size, 2).uniform_(0, 1)
+        bl_cost = 0
+        if baseline is not None and hasattr(baseline, 'model'):
+            bl_cost = rollout(baseline.model, ewc_dataset, opts)
         ewc = EWC(
             model,
-            bl_model,
-            torch.FloatTensor(1024, opts.graph_size, 2).uniform_(0, 1),
+            bl_cost,
+            ewc_dataset,
             opts,
             ewc_lambda=opts.ewc_lambda
         )
