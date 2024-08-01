@@ -104,7 +104,7 @@ def train_epoch(
     # Initialize EWC if applicable
     ewc = None
     if opts.ewc_lambda > 0:
-        ewc_dataset = torch.FloatTensor(1024, opts.graph_size, 2).uniform_(0, 1).to(opts.device)
+        ewc_dataset = torch.FloatTensor(2048, opts.graph_size, 2).uniform_(0, 1).to(opts.device)
         bl_cost = 0
         if baseline is not None and hasattr(baseline, 'model'):
             bl_cost = rollout(baseline.model, ewc_dataset, opts)
