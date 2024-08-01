@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.autograd import Variable
 from copy import deepcopy
+from train import rollout
 
 
 def variable(t: torch.Tensor, device=None, **kwargs):
@@ -11,36 +12,38 @@ def variable(t: torch.Tensor, device=None, **kwargs):
 
 
 class EWC(object):
-    def __init__(self, model: nn.Module, dataset: list, opts, ewc_lambda=100):
+    def __init__(self, model, bl_model, dataset, opts, ewc_lambda=100):
 
         self.model = model
+        self.bl_model = bl_model
         self.dataset = dataset
-        self.device = opts.device
+        self.opts = opts
 
         self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}
         self._means = {}
         self._precision_matrices = self._diag_fisher()
 
         for n, p in deepcopy(self.params).items():
-            self._means[n] = variable(p.data, device=self.device)
+            self._means[n] = variable(p.data, device=self.opts.device)
 
     def _diag_fisher(self):
         precision_matrices = {}
         for n, p in deepcopy(self.params).items():
             p.data.zero_()
-            precision_matrices[n] = variable(p.data, device=self.device)
+            precision_matrices[n] = variable(p.data, device=self.opts.device)
+
+        bl_cost = 0
+        if self.bl_model is not None:
+            bl_cost = rollout(self.bl_model, self.dataset, self.opts)
 
         self.model.eval()
-        for input in self.dataset:
-            self.model.zero_grad()
-            input = variable(input, device=self.device)
-            output = self.model(input).view(1, -1)
-            label = output.max(1)[1].view(-1)
-            loss = F.nll_loss(F.log_softmax(output, dim=1), label)
-            loss.backward()
+        self.model.zero_grad()
+        cost, log_likelihood = self.model(input)
+        loss = (cost - bl_cost) * log_likelihood
+        loss.backward()
 
-            for n, p in self.model.named_parameters():
-                precision_matrices[n].data += p.grad.data ** 2 / len(self.dataset)
+        for n, p in self.model.named_parameters():
+            precision_matrices[n].data += p.grad.data ** 2 / len(self.dataset)
 
         precision_matrices = {n: p for n, p in precision_matrices.items()}
         return precision_matrices

@@ -101,11 +101,14 @@ def train_epoch(
         hard_data = get_hard_samples(model, training_dataset.data[mid:], eps=5, device=opts.device, baseline=baseline)
         training_dataset.data[mid:] = hard_data
     
+    # Initialize EWC if applicable
     ewc = None
     if opts.ewc_lambda > 0:
+        bl_model = baseline.model if (baseline is not None and hasattr(baseline, 'model')) else None
         ewc = EWC(
             model,
-            [torch.FloatTensor(opts.graph_size, 2).uniform_(0, 1) for i in range(1024)],
+            bl_model,
+            torch.FloatTensor(1024, opts.graph_size, 2).uniform_(0, 1),
             opts,
             ewc_lambda=opts.ewc_lambda
         )
