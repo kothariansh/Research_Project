@@ -112,8 +112,7 @@ def train_epoch(
             model,
             bl_cost,
             ewc_dataset,
-            opts,
-            ewc_lambda=opts.ewc_lambda
+            opts
         )
     
     # Wrap dataset in DataLoader

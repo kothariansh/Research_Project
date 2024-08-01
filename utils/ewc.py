@@ -11,12 +11,13 @@ def variable(t: torch.Tensor, device=None, **kwargs):
 
 
 class EWC(object):
-    def __init__(self, model, bl_cost, dataset, opts, ewc_lambda=100):
+    def __init__(self, model, bl_cost, dataset, opts):
 
         self.model = model
         self.bl_cost = bl_cost
         self.dataset = dataset
         self.device = opts.device
+        self.ewc_lambda = opts.ewc_lambda
 
         self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}
         self._means = {}
