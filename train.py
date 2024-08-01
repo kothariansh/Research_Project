@@ -12,6 +12,7 @@ from nets.attention_model import set_decode_type
 from utils.level_edit import global_perturb_tensor, local_perturb_tensor, random_edit_tensor
 from utils.transformations import transform_tensor_batch
 from utils.hardness_adaptive import get_hard_samples
+from utils.ewc import EWC
 from utils.log_utils import log_values
 from utils import move_to
 
@@ -100,6 +101,15 @@ def train_epoch(
         hard_data = get_hard_samples(model, training_dataset.data[mid:], eps=5, device=opts.device, baseline=baseline)
         training_dataset.data[mid:] = hard_data
     
+    ewc = None
+    if opts.ewc_lambda > 0:
+        ewc = EWC(
+            model,
+            [torch.FloatTensor(opts.graph_size, 2).uniform_(0, 1) for i in range(1024)],
+            opts,
+            ewc_lambda=opts.ewc_lambda
+        )
+    
     # Wrap dataset in DataLoader
     training_dataset_wrapped = baseline.wrap_dataset(training_dataset)
     training_dataloader = DataLoader(training_dataset_wrapped, batch_size=opts.batch_size, num_workers=1)
@@ -119,6 +129,7 @@ def train_epoch(
             step,
             batch,
             tb_logger,
+            ewc,
             opts
         )
 
@@ -193,6 +204,7 @@ def train_batch(
         step,
         batch,
         tb_logger,
+        ewc,
         opts
 ):
     x, bl_val = baseline.unwrap_batch(batch)
@@ -223,6 +235,9 @@ def train_batch(
     else:
         reinforce_loss = (loss).mean()
     loss = reinforce_loss + bl_loss
+
+    if ewc is not None:
+        loss += ewc.penalty(model)
 
     # Perform backward pass and optimization step
     optimizer.zero_grad()
