@@ -48,6 +48,7 @@ def get_options(args=None):
                         help='Number of epochs to warmup the baseline, default None means 1 for rollout (exponential '
                              'used for warmup phase), 0 otherwise. Can only be used with rollout baseline.')
     parser.add_argument('--ewc_lambda', type=float, default=0, help='Elastic weight consolidation lambda (0 to disable)')
+    parser.add_argument('--ewc_fisher_n', type=int, default=2048, help='Number of samples to estimate Fisher Information')
     parser.add_argument('--eval_batch_size', type=int, default=1024,
                         help="Batch size to use during (baseline) evaluation")
     parser.add_argument('--checkpoint_encoder', action='store_true',

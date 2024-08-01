@@ -160,14 +160,16 @@ def run(opts):
         validate(model, val_dataset, opts)
     else:
         training_dataset = None
+        ewc_dataset = None
         for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
-            training_dataset = train_epoch(
+            training_dataset, ewc_dataset = train_epoch(
                 model,
                 optimizer,
                 baseline,
                 lr_scheduler,
                 epoch,
                 training_dataset,
+                ewc_dataset,
                 val_dataset,
                 problem,
                 tb_logger,
