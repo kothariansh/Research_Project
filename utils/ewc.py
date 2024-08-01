@@ -5,7 +5,7 @@ from torch.autograd import Variable
 from copy import deepcopy
 
 
-def variable(t: torch.Tensor, device=None, **kwargs):
+def variable(t: torch.Tensor, device, **kwargs):
     t = t.to(device)
     return Variable(t, **kwargs)
 
@@ -39,7 +39,7 @@ class EWC(object):
         loss.backward()
 
         for n, p in self.model.named_parameters():
-            precision_matrices[n].data += p.grad.data ** 2 / len(self.dataset)
+            precision_matrices[n].data += p.grad.data ** 2
 
         precision_matrices = {n: p for n, p in precision_matrices.items()}
         return precision_matrices
