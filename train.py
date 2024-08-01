@@ -161,10 +161,13 @@ def train_epoch(
     elif opts.edit_fn == 'random_edit':
         edit_function = random_edit_tensor
     
-    train_reward = rollout(model, training_dataset, opts)
-    sorted_idx = torch.argsort(train_reward)
+    bl_cost = 0
+    if baseline is not None and hasattr(baseline, 'model'):
+        bl_cost = rollout(baseline.model, training_dataset, opts)
+    train_regret = rollout(model, training_dataset, opts) - bl_cost
+    sorted_idx = torch.argsort(train_regret)
 
-    num_replace = train_reward.size(0) // 2
+    num_replace = train_regret.size(0) // 2
     low_idx = sorted_idx[:num_replace]
     high_idx = sorted_idx[num_replace:num_replace*2]
     new_data = [

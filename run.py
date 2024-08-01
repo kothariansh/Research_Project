@@ -14,7 +14,7 @@ from train import train_epoch, validate, get_inner_model
 from reinforce_baselines import NoBaseline, ExponentialBaseline, CriticBaseline, RolloutBaseline, WarmupBaseline
 from nets.attention_model import AttentionModel
 from nets.pointer_network import PointerNetwork, CriticNetworkLSTM
-from utils import torch_load_cpu, load_problem
+from utils import torch_load_cpu, load_problem, load_model
 
 
 def run(opts):
@@ -50,23 +50,28 @@ def run(opts):
         load_data = torch_load_cpu(load_path)
 
     # Initialize model
-    model_class = {
-        'attention': AttentionModel,
-        'pointer': PointerNetwork
-    }.get(opts.model, None)
-    assert model_class is not None, "Unknown model: {}".format(model_class)
-    model = model_class(
-        opts.embedding_dim,
-        opts.hidden_dim,
-        problem,
-        n_encode_layers=opts.n_encode_layers,
-        mask_inner=True,
-        mask_logits=True,
-        normalization=opts.normalization,
-        tanh_clipping=opts.tanh_clipping,
-        checkpoint_encoder=opts.checkpoint_encoder,
-        shrink_size=opts.shrink_size
-    ).to(opts.device)
+    if opts.pretrain_path is not None:
+        print('  [*] Loading pretrained model from {}'.format(opts.pretrain_path))
+        model, _ = load_model(opts.pretrain_path)
+    else:
+        model_class = {
+            'attention': AttentionModel,
+            'pointer': PointerNetwork
+        }.get(opts.model, None)
+        assert model_class is not None, "Unknown model: {}".format(model_class)
+        model = model_class(
+            opts.embedding_dim,
+            opts.hidden_dim,
+            problem,
+            n_encode_layers=opts.n_encode_layers,
+            mask_inner=True,
+            mask_logits=True,
+            normalization=opts.normalization,
+            tanh_clipping=opts.tanh_clipping,
+            checkpoint_encoder=opts.checkpoint_encoder,
+            shrink_size=opts.shrink_size
+        ).to(opts.device)
+    model = model.to(opts.device)
 
     if opts.use_cuda and torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)

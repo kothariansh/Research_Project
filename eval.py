@@ -1,4 +1,5 @@
 import math
+import json
 import torch
 import os
 import argparse
@@ -94,6 +95,7 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
     costs, tours, durations = zip(*results)  # Not really costs since they should be negative
 
     # Print gap-based stats if applicable
+    gap_rel = None
     if use_oracle and oracle_baseline is not None:
         oracle_costs = np.array(oracle_baseline)
         gap = costs - oracle_costs
@@ -112,8 +114,8 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
 
     dataset_basename, ext = os.path.splitext(os.path.split(dataset_path)[-1])
     model_name = "_".join(os.path.normpath(os.path.splitext(opts.model)[0]).split(os.sep)[-2:])
+    results_dir = os.path.join(opts.results_dir, model.problem.NAME, dataset_basename)
     if opts.o is None:
-        results_dir = os.path.join(opts.results_dir, model.problem.NAME, dataset_basename)
         os.makedirs(results_dir, exist_ok=True)
 
         out_file = os.path.join(results_dir, "{}-{}-{}{}-t{}-{}-{}{}".format(
@@ -125,13 +127,14 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
     else:
         out_file = opts.o
 
-    print(out_file)
-    assert opts.f or not os.path.isfile(
-        out_file), "File already exists! Try running with -f option to overwrite."
+    if not opts.all_epochs:
+        print(out_file)
+        assert opts.f or not os.path.isfile(
+            out_file), "File already exists! Try running with -f option to overwrite."
 
-    save_dataset((results, parallelism), out_file)
+        save_dataset((results, parallelism), out_file)
 
-    return costs, tours, durations
+    return costs, gap_rel, tours, durations, os.path.join(results_dir, model_name)
 
 
 def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
@@ -247,6 +250,7 @@ if __name__ == "__main__":
                         help="Softmax temperature (sampling or bs)")
     parser.add_argument('--oracle_baseline', type=str, default=None, help='Oracle baseline for computing gap statistics')
     parser.add_argument('--model', type=str)
+    parser.add_argument('--all_epochs', action='store_true', help='Evaluate all epochs')
     parser.add_argument('--no_cuda', action='store_true', help='Disable CUDA')
     parser.add_argument('--no_progress_bar', action='store_true', help='Disable progress bar')
     parser.add_argument('--compress_mask', action='store_true', help='Compress mask into long')
@@ -260,8 +264,30 @@ if __name__ == "__main__":
     assert opts.o is None or (len(opts.datasets) == 1 and len(opts.width) <= 1), \
         "Cannot specify result filename with more than one dataset or more than one width"
 
+    assert not (opts.all_epochs and opts.model.endswith(".pt")), "Can only use --all_epochs on a folder"
+
     widths = opts.width if opts.width is not None else [0]
 
     for width in widths:
         for dataset_path in opts.datasets:
-            eval_dataset(dataset_path, width, opts.softmax_temperature, opts)
+            if opts.all_epochs:
+                base_model_path = opts.model
+                res = {}
+                for epoch_file in os.listdir(opts.model):
+                    if not epoch_file.endswith(".pt"):
+                        continue
+                    epoch = int(epoch_file.split("-")[1].split(".")[0])
+                    model_path = os.path.join(base_model_path, epoch_file)
+                    opts.model = model_path
+                    costs, gap_rel, _, _, results_prefix = eval_dataset(dataset_path, width, opts.softmax_temperature, opts)
+                    res[str(epoch)] = {
+                        "Cost_Avg": str(np.mean(costs)),
+                        "Cost_Error": str(2 * np.std(costs) / np.sqrt(len(costs))),
+                        "Gap_Rel_Avg": str(np.mean(gap_rel) if gap_rel is not None else -1),
+                        "Gap_Rel_Error": str(2 * np.std(gap_rel) / np.sqrt(len(gap_rel)) if gap_rel is not None else -1)
+                    }
+                    results_prefix = results_prefix[:-len(str(epoch)+'_epoch-')]
+                with open(results_prefix + "-epoch_data.json", 'w') as f:
+                    json.dump(res, f)
+            else:
+                eval_dataset(dataset_path, width, opts.softmax_temperature, opts)
