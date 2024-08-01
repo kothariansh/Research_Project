@@ -35,7 +35,7 @@ class EWC(object):
         self.model.eval()
         self.model.zero_grad()
         cost, log_likelihood = self.model(self.dataset)
-        loss = ((cost - self.bl_cost) * log_likelihood).sum()
+        loss = ((cost - self.bl_cost) * log_likelihood).mean()
         loss.backward()
 
         for n, p in self.model.named_parameters():
