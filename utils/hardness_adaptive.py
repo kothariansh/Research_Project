@@ -3,13 +3,14 @@ from torch.utils.data import DataLoader
 from nets.attention_model import set_decode_type
 
 
-def get_hard_samples(model, data, eps=5, batch_size=1024, device='cpu', baseline=None):
+def get_hard_samples(model, data, eps=5, batch_size=1024, device='cpu', baseline=None, get_easy=False):
     """
     Hardness adaptive curriculum, from Zhang et. al (2022)
     https://arxiv.org/abs/2204.03236
     """
     model.eval()
     set_decode_type(model, "greedy")
+    multiplier = -1 if get_easy else 1
 
     # Minmax util function
     def minmax(graphs):
@@ -30,7 +31,7 @@ def get_hard_samples(model, data, eps=5, batch_size=1024, device='cpu', baseline
         else:
             # As dividend is viewed as constant, it can be omitted in gradient calculation. 
             delta = torch.autograd.grad(eps * (cost*ll).mean(), data)[0]
-        ndata = data + delta
+        ndata = data + (multiplier * delta)
         ndata = minmax(ndata)
         return ndata.detach().cpu()
     
