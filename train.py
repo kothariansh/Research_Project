@@ -97,10 +97,11 @@ def train_epoch(
     
     # Randomly make half the data harder if hardness adaptive curriculum is used
     if opts.hardness_adaptive:
-        random.shuffle(training_dataset.data)
-        mid = training_dataset.size // 2
-        hard_data = get_hard_samples(model, training_dataset.data[mid:], eps=5, device=opts.device, baseline=baseline)
-        training_dataset.data[mid:] = hard_data
+        target = 0 if opts.hardness_adaptive_fullbatch else training_dataset.size // 2
+        if target > 0:
+            random.shuffle(training_dataset.data)
+        hard_data = get_hard_samples(model, training_dataset.data[target:], eps=5, device=opts.device, baseline=baseline)
+        training_dataset.data[target:] = hard_data
     
     # Initialize EWC if applicable
     ewc = None
