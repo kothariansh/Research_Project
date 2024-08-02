@@ -113,7 +113,7 @@ def train_epoch(
             ).to(opts.device)
         bl_cost = 0
         if baseline is not None and hasattr(baseline, 'model'):
-            bl_cost = rollout(baseline.model, ewc_dataset, opts)
+            bl_cost = rollout(baseline.model, ewc_dataset, opts).to(opts.device)
         ewc = EWC(
             model,
             bl_cost,
