@@ -173,6 +173,7 @@ def train_epoch(
     lr_scheduler.step()
 
     # Compute regret on instances
+    edit_function = opts.edit_fn
     calc_ewc = opts.ewc_lambda > 0
     calc_dataset = (edit_function != None and opts.problem == 'tsp')
     if calc_ewc or calc_dataset:
@@ -192,7 +193,6 @@ def train_epoch(
 
     # Calculate new training data if applicable
     # Only available for TSP problem
-    edit_function = opts.edit_fn
     if not calc_dataset:
         training_dataset = None
     else:
