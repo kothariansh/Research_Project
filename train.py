@@ -173,15 +173,18 @@ def train_epoch(
     lr_scheduler.step()
 
     # Compute regret on instances
-    bl_cost = 0
-    if baseline is not None and hasattr(baseline, 'model'):
-        bl_cost = rollout(baseline.model, training_dataset, opts)
-    train_regret = rollout(model, training_dataset, opts) - bl_cost
-    sorted_idx = torch.argsort(train_regret)
+    calc_ewc = opts.ewc_lambda > 0
+    calc_dataset = (edit_function != None and opts.problem == 'tsp')
+    if calc_ewc or calc_dataset:
+        bl_cost = 0
+        if baseline is not None and hasattr(baseline, 'model'):
+            bl_cost = rollout(baseline.model, training_dataset, opts)
+        train_regret = rollout(model, training_dataset, opts) - bl_cost
+        sorted_idx = torch.argsort(train_regret)
 
     # Create new EWC dataset if applicable
     # Needs to occur *before* mutations, because we use training_dataset entries
-    if opts.ewc_lambda > 0:
+    if calc_ewc:
         ewc_dataset_new = []
         for i in range(opts.ewc_fisher_n):
             ewc_dataset_new.append(training_dataset[sorted_idx[i]])
@@ -190,7 +193,7 @@ def train_epoch(
     # Calculate new training data if applicable
     # Only available for TSP problem
     edit_function = opts.edit_fn
-    if edit_function == None or opts.problem != 'tsp':
+    if not calc_dataset:
         training_dataset = None
     else:
         if opts.edit_fn == 'global_perturb':
