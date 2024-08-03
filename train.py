@@ -96,12 +96,11 @@ def train_epoch(
         )
     
     # Randomly make half the data harder if hardness adaptive curriculum is used
-    if opts.hardness_adaptive:
-        target = 0 if opts.hardness_adaptive_fullbatch else training_dataset.size // 2
-        if target > 0:
-            random.shuffle(training_dataset.data)
-        hard_data = get_hard_samples(model, training_dataset.data[target:], eps=5, device=opts.device, baseline=baseline)
-        training_dataset.data[target:] = hard_data
+    if opts.hardness_adaptive_percent > 0:
+        target = (training_dataset.size * opts.hardness_adaptive_percent) // 100
+        random.shuffle(training_dataset.data)
+        hard_data = get_hard_samples(model, training_dataset.data[:target], eps=5, device=opts.device, baseline=baseline)
+        training_dataset.data[:target] = hard_data
     
     # Initialize EWC if applicable
     ewc = None
@@ -249,7 +248,7 @@ def train_batch(
 
     # Calculate loss
     loss = (cost - bl_val) * log_likelihood
-    if opts.hardness_adaptive:
+    if opts.hardness_adaptive_percent > 0:
         w = ((cost/bl_val) * log_likelihood).detach()
         t = torch.FloatTensor([20-(epoch % 20)]).to(loss.device)
         w = torch.tanh(w)
