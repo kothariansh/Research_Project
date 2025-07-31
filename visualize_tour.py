@@ -15,15 +15,10 @@ coords = sample.numpy()
 
 # Get tour
 with torch.no_grad():
-    output = model(sample.unsqueeze(0), return_pi=True)
+    _, tour = model(sample.unsqueeze(0), return_pi=True)
 
-# Extract the tour
-if isinstance(output, tuple):
-    tour = output[1]  # return_pi=True → output[1] is the tour (pi)
-else:
-    tour = output
-
-tour = tour.squeeze().cpu().numpy()
+# Ensure tour is 1D
+tour = tour[0].cpu().numpy()  # Get first (and only) tour from batch
 
 # Close the tour loop
 tour = np.append(tour, tour[0])
