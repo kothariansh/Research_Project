@@ -10,12 +10,12 @@ model.set_decode_type("greedy")
 
 # Generate 1 random instance
 dataset = model.problem.make_dataset(num_samples=1)
-sample = dataset[0]
-coords = sample['loc'].numpy()
+sample = dataset[0]  # Tensor of shape [graph_size, 2]
+coords = sample.numpy()
 
 # Get tour
 with torch.no_grad():
-    tour, _ = model(sample, return_pi=True)
+    tour, _ = model(sample.unsqueeze(0), return_pi=True)  # Add batch dimension
 
 tour = tour.squeeze().numpy()
 
