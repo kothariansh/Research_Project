@@ -10,14 +10,20 @@ model.set_decode_type("greedy")
 
 # Generate 1 random instance
 dataset = model.problem.make_dataset(num_samples=1)
-sample = dataset[0]  # Tensor of shape [graph_size, 2]
+sample = dataset[0]  # Shape: [graph_size, 2]
 coords = sample.numpy()
 
 # Get tour
 with torch.no_grad():
-    tour, _ = model(sample.unsqueeze(0), return_pi=True)  # Add batch dimension
+    output = model(sample.unsqueeze(0), return_pi=True)
 
-tour = tour.squeeze().numpy()
+# Extract the tour
+if isinstance(output, tuple):
+    tour = output[1]  # return_pi=True → output[1] is the tour (pi)
+else:
+    tour = output
+
+tour = tour.squeeze().cpu().numpy()
 
 # Close the tour loop
 tour = np.append(tour, tour[0])
