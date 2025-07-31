@@ -28,11 +28,11 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-        # 1) Grab the raw ids tensor without invoking __getitem__:
+        # 1) Bypass any __getitem__ override by calling the real built-in:
         ids = object.__getattribute__(self, 'ids')
         device = ids.device
     
-        # 2) Turn key into a 1-D LongTensor of indices:
+        # 2) Normalize key to a 1D LongTensor of indices:
         if isinstance(key, int):
             key = torch.tensor([key], dtype=torch.long, device=device)
         elif isinstance(key, list):
@@ -42,7 +42,7 @@ class StateTSP(NamedTuple):
         elif not torch.is_tensor(key):
             raise TypeError(f"Unsupported key type: {type(key)}")
     
-        # 3) Rebuild the NamedTuple by indexing each field directly:
+        # 3) Index every field the same way:
         return StateTSP(
             loc       = object.__getattribute__(self, 'loc').index_select(0, key),
             dist      = object.__getattribute__(self, 'dist').index_select(0, key),
@@ -53,7 +53,8 @@ class StateTSP(NamedTuple):
             lengths   = object.__getattribute__(self, 'lengths').index_select(0, key),
             cur_coord = (
                 object.__getattribute__(self, 'cur_coord').index_select(0, key)
-                if object.__getattribute__(self, 'cur_coord') is not None else None
+                if object.__getattribute__(self, 'cur_coord') is not None
+                else None
             ),
             i         = object.__getattribute__(self, 'i').index_select(0, key),
         )
