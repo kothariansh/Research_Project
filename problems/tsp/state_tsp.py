@@ -28,29 +28,15 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-        if isinstance(key, int):
-            key_tensor = torch.tensor([key], dtype=torch.long, device=self.__getattribute__('ids').device)
-        elif isinstance(key, list):
-            key_tensor = torch.tensor(key, dtype=torch.long, device=self.__getattribute__('ids').device)
-        else:
-            key_tensor = key  # assume already tensor
-    
-        return StateTSP(
-            loc=self.__getattribute__('loc').index_select(0, key_tensor),
-            dist=self.__getattribute__('dist').index_select(0, key_tensor),
-            ids=self.__getattribute__('ids').index_select(0, key_tensor),
-            first_a=self.__getattribute__('first_a').index_select(0, key_tensor),
-            prev_a=self.__getattribute__('prev_a').index_select(0, key_tensor),
-            visited_=self.__getattribute__('visited_').index_select(0, key_tensor),
-            lengths=self.__getattribute__('lengths').index_select(0, key_tensor),
-            cur_coord=self.__getattribute__('cur_coord').index_select(0, key_tensor)
-                if self.__getattribute__('cur_coord') is not None else None,
-            i=self.__getattribute__('i').index_select(0, key_tensor)
+        assert torch.is_tensor(key) or isinstance(key, slice)  # If tensor, idx all tensors by this tensor:
+        return self._replace(
+            ids=self.ids[key],
+            first_a=self.first_a[key],
+            prev_a=self.prev_a[key],
+            visited_=self.visited_[key],
+            lengths=self.lengths[key],
+            cur_coord=self.cur_coord[key] if self.cur_coord is not None else None,
         )
-
-
-
-
 
     @staticmethod
     def initialize(loc, visited_dtype=torch.uint8):
