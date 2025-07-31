@@ -28,26 +28,37 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
+        # Safely grab the raw ids tensor without invoking __getitem__ again
+        ids = object.__getattribute__(self, 'ids')
+        device = ids.device
+    
+        # Normalize key to a 1D LongTensor of indices
         if isinstance(key, int):
-            key = torch.tensor([key], dtype=torch.long, device=self.ids.device)
+            key = torch.tensor([key], dtype=torch.long, device=device)
         elif isinstance(key, list):
-            key = torch.tensor(key, dtype=torch.long, device=self.ids.device)
+            key = torch.tensor(key, dtype=torch.long, device=device)
         elif isinstance(key, slice):
-            key = torch.arange(self.ids.size(0), device=self.ids.device)[key]
+            key = torch.arange(ids.size(0), device=device)[key]
         elif not torch.is_tensor(key):
             raise TypeError(f"Unsupported key type: {type(key)}")
     
+        # Build a new StateTSP by indexing each field directly
         return StateTSP(
-            loc=self.loc.index_select(0, key),
-            dist=self.dist.index_select(0, key),
-            ids=self.ids.index_select(0, key),
-            first_a=self.first_a.index_select(0, key),
-            prev_a=self.prev_a.index_select(0, key),
-            visited_=self.visited_.index_select(0, key),
-            lengths=self.lengths.index_select(0, key),
-            cur_coord=self.cur_coord.index_select(0, key) if self.cur_coord is not None else None,
-            i=self.i.index_select(0, key)
+            loc       = object.__getattribute__(self, 'loc').index_select(0, key),
+            dist      = object.__getattribute__(self, 'dist').index_select(0, key),
+            ids       = ids.index_select(0, key),
+            first_a   = object.__getattribute__(self, 'first_a').index_select(0, key),
+            prev_a    = object.__getattribute__(self, 'prev_a').index_select(0, key),
+            visited_  = object.__getattribute__(self, 'visited_').index_select(0, key),
+            lengths   = object.__getattribute__(self, 'lengths').index_select(0, key),
+            cur_coord = (
+                object.__getattribute__(self, 'cur_coord').index_select(0, key)
+                if object.__getattribute__(self, 'cur_coord') is not None
+                else None
+            ),
+            i         = object.__getattribute__(self, 'i').index_select(0, key),
         )
+
 
 
 
