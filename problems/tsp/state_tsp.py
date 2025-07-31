@@ -28,8 +28,7 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-        # Avoid recursion by using __getattribute__ from NamedTuple
-        ids = super().__getattribute__('ids')
+        ids = super(StateTSP, self).__getattribute__('ids')
     
         if isinstance(key, int):
             key = torch.tensor([key], dtype=torch.long, device=ids.device)
@@ -41,17 +40,18 @@ class StateTSP(NamedTuple):
             raise TypeError(f"Unsupported key type: {type(key)}")
     
         return StateTSP(
-            loc=super().__getattribute__('loc').index_select(0, key),
-            dist=super().__getattribute__('dist').index_select(0, key),
+            loc=super(StateTSP, self).__getattribute__('loc').index_select(0, key),
+            dist=super(StateTSP, self).__getattribute__('dist').index_select(0, key),
             ids=ids.index_select(0, key),
-            first_a=super().__getattribute__('first_a').index_select(0, key),
-            prev_a=super().__getattribute__('prev_a').index_select(0, key),
-            visited_=super().__getattribute__('visited_').index_select(0, key),
-            lengths=super().__getattribute__('lengths').index_select(0, key),
-            cur_coord=super().__getattribute__('cur_coord').index_select(0, key)
-                if super().__getattribute__('cur_coord') is not None else None,
-            i=super().__getattribute__('i').index_select(0, key)
-        )
+            first_a=super(StateTSP, self).__getattribute__('first_a').index_select(0, key),
+            prev_a=super(StateTSP, self).__getattribute__('prev_a').index_select(0, key),
+            visited_=super(StateTSP, self).__getattribute__('visited_').index_select(0, key),
+            lengths=super(StateTSP, self).__getattribute__('lengths').index_select(0, key),
+            cur_coord=super(StateTSP, self).__getattribute__('cur_coord').index_select(0, key)
+                if super(StateTSP, self).__getattribute__('cur_coord') is not None else None,
+            i=super(StateTSP, self).__getattribute__('i').index_select(0, key)
+    )
+
 
 
 
