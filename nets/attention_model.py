@@ -29,14 +29,26 @@ class AttentionModelFixed(NamedTuple):
     logit_key: torch.Tensor
 
     def __getitem__(self, key):
-        assert torch.is_tensor(key) or isinstance(key, slice)
+    # Normalize key to tensor
+        if isinstance(key, int):
+            key = torch.tensor([key])
+        elif isinstance(key, (list, tuple)):
+            key = torch.tensor(key)
+        elif isinstance(key, slice):
+            key = torch.arange(self.node_embeddings.size(0))[key]
+        elif not torch.is_tensor(key):
+            raise TypeError(f"Unsupported key type: {type(key)}")
+    
+        key = key.to(self.node_embeddings.device).long()
+    
         return AttentionModelFixed(
             node_embeddings=self.node_embeddings[key],
             context_node_projected=self.context_node_projected[key],
-            glimpse_key=self.glimpse_key[:, key],  # dim 0 are the heads
-            glimpse_val=self.glimpse_val[:, key],  # dim 0 are the heads
+            glimpse_key=self.glimpse_key[:, key],
+            glimpse_val=self.glimpse_val[:, key],
             logit_key=self.logit_key[key]
         )
+
 
 
 class AttentionModel(nn.Module):
