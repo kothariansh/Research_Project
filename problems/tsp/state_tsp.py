@@ -51,7 +51,7 @@ class StateTSP(NamedTuple):
     
         # 2) _replace only the batch‐first fields; loc/dist stay shared
         return self._replace(
-            ids       = self.ids[key],
+            ids       = self.ids[key].view(-1, 1),  # ✅ Prevent recursion by ensuring correct shape
             first_a   = self.first_a[key],
             prev_a    = self.prev_a[key],
             visited_  = self.visited_[key],
@@ -59,6 +59,7 @@ class StateTSP(NamedTuple):
             cur_coord = (self.cur_coord[key] if self.cur_coord is not None else None),
             i         = self.i[key],
         )
+
 
 
     @staticmethod
