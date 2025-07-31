@@ -31,15 +31,8 @@ class AttentionModelFixed(NamedTuple):
     def __getitem__(self, key):
         if not torch.is_tensor(key):
             if isinstance(key, slice):
-                key = torch.arange(self.node_embeddings.size(0))[key]
-            elif isinstance(key, (list, tuple)):
-                key = torch.tensor(key)
-            elif isinstance(key, int):
-                key = torch.tensor([key])
-            else:
-                raise TypeError(f"Unsupported key type: {type(key)}")
-    
-        key = key.to(self.node_embeddings.device).long()
+                key = list(range(self.node_embeddings.size(0)))[key]
+            key = torch.as_tensor(key, dtype=torch.long)
     
         return AttentionModelFixed(
             node_embeddings=self.node_embeddings[key],
