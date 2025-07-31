@@ -28,19 +28,19 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-    if isinstance(key, int):
-        key = torch.tensor([key], dtype=torch.long)
-    elif isinstance(key, list):
-        key = torch.tensor(key, dtype=torch.long)
-
-    return self._replace(
-        ids=self.__dict__["ids"].index_select(0, key),
-        first_a=self.__dict__["first_a"].index_select(0, key),
-        prev_a=self.__dict__["prev_a"].index_select(0, key),
-        visited_=self.__dict__["visited_"].index_select(0, key),
-        lengths=self.__dict__["lengths"].index_select(0, key),
-        cur_coord=self.__dict__["cur_coord"].index_select(0, key) if self.cur_coord is not None else None
-    )
+        if isinstance(key, int):
+            key = torch.tensor([key], dtype=torch.long)
+        elif isinstance(key, list):
+            key = torch.tensor(key, dtype=torch.long)
+    
+        return self._replace(
+            ids=self.__dict__["ids"].index_select(0, key),
+            first_a=self.__dict__["first_a"].index_select(0, key),
+            prev_a=self.__dict__["prev_a"].index_select(0, key),
+            visited_=self.__dict__["visited_"].index_select(0, key),
+            lengths=self.__dict__["lengths"].index_select(0, key),
+            cur_coord=self.__dict__["cur_coord"].index_select(0, key) if self.cur_coord is not None else None
+        )
 
 
     @staticmethod
