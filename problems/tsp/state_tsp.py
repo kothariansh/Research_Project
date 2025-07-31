@@ -28,35 +28,35 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-        # 1) Bypass any __getitem__ override by calling the real built-in:
-        ids = object.__getattribute__(self, 'ids')
+        # 1) Grab the raw ids without any recursion
+        ids = _get(self, 'ids')
         device = ids.device
     
-        # 2) Normalize key to a 1D LongTensor of indices:
+        # 2) Normalize the key into a 1-D LongTensor of indices
         if isinstance(key, int):
             key = torch.tensor([key], dtype=torch.long, device=device)
         elif isinstance(key, list):
-            key = torch.tensor(key,      dtype=torch.long, device=device)
+            key = torch.tensor(key, dtype=torch.long, device=device)
         elif isinstance(key, slice):
             key = torch.arange(ids.size(0), device=device)[key]
         elif not torch.is_tensor(key):
             raise TypeError(f"Unsupported key type: {type(key)}")
     
-        # 3) Index every field the same way:
+        # 3) Build and return a new StateTSP by indexing each field
         return StateTSP(
-            loc       = object.__getattribute__(self, 'loc').index_select(0, key),
-            dist      = object.__getattribute__(self, 'dist').index_select(0, key),
+            loc       = _get(self, 'loc').index_select(0, key),
+            dist      = _get(self, 'dist').index_select(0, key),
             ids       = ids.index_select(0, key),
-            first_a   = object.__getattribute__(self, 'first_a').index_select(0, key),
-            prev_a    = object.__getattribute__(self, 'prev_a').index_select(0, key),
-            visited_  = object.__getattribute__(self, 'visited_').index_select(0, key),
-            lengths   = object.__getattribute__(self, 'lengths').index_select(0, key),
+            first_a   = _get(self, 'first_a').index_select(0, key),
+            prev_a    = _get(self, 'prev_a').index_select(0, key),
+            visited_  = _get(self, 'visited_').index_select(0, key),
+            lengths   = _get(self, 'lengths').index_select(0, key),
             cur_coord = (
-                object.__getattribute__(self, 'cur_coord').index_select(0, key)
-                if object.__getattribute__(self, 'cur_coord') is not None
+                _get(self, 'cur_coord').index_select(0, key)
+                if _get(self, 'cur_coord') is not None
                 else None
             ),
-            i         = object.__getattribute__(self, 'i').index_select(0, key),
+            i         = _get(self, 'i').index_select(0, key),
         )
 
 
