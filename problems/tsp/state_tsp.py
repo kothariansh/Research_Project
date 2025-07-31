@@ -28,26 +28,27 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-        # 1) Normalize key into a LongTensor of batch indices
+        # 1) Normalize key -> LongTensor of batch indices
         if isinstance(key, int):
-            key = [key]
-        if isinstance(key, (list, tuple)):
-            key = torch.tensor(key, dtype=torch.long, device=self.ids.device)
+            key = torch.tensor([key], dtype=torch.long, device=self.ids.device)
+        elif isinstance(key, list):
+            key = torch.tensor(key,      dtype=torch.long, device=self.ids.device)
         elif isinstance(key, slice):
             key = torch.arange(self.ids.size(0), device=self.ids.device)[key]
         elif not torch.is_tensor(key):
             raise TypeError(f"Unsupported key type: {type(key)}")
     
-        # 2) Use NamedTuple._replace to slice only the batch‐first tensors
+        # 2) Slice each *Tensor* field (this calls Tensor.__getitem__, not StateTSP.__getitem__)
         return self._replace(
             ids       = self.ids[key],
             first_a   = self.first_a[key],
             prev_a    = self.prev_a[key],
             visited_  = self.visited_[key],
             lengths   = self.lengths[key],
-            cur_coord = self.cur_coord[key]    if self.cur_coord is not None else None,
+            cur_coord = (self.cur_coord[key] if self.cur_coord is not None else None),
             i         = self.i[key],
         )
+
 
 
 
