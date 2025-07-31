@@ -16,6 +16,21 @@ def set_decode_type(model, decode_type):
         model = model.module
     model.set_decode_type(decode_type)
 
+def index_fixed(fixed, key):
+    if not torch.is_tensor(key):
+        if isinstance(key, slice):
+            key = list(range(fixed.node_embeddings.size(0)))[key]
+        key = torch.as_tensor(key, dtype=torch.long)
+
+    return AttentionModelFixed(
+        node_embeddings=fixed.node_embeddings[key],
+        context_node_projected=fixed.context_node_projected[key],
+        glimpse_key=fixed.glimpse_key[:, key],
+        glimpse_val=fixed.glimpse_val[:, key],
+        logit_key=fixed.logit_key[key]
+    )
+
+
 
 class AttentionModelFixed(NamedTuple):
     """
@@ -27,21 +42,6 @@ class AttentionModelFixed(NamedTuple):
     glimpse_key: torch.Tensor
     glimpse_val: torch.Tensor
     logit_key: torch.Tensor
-
-    def __getitem__(self, key):
-        if not torch.is_tensor(key):
-            if isinstance(key, slice):
-                key = list(range(self.node_embeddings.size(0)))[key]
-            key = torch.as_tensor(key, dtype=torch.long)
-    
-        return AttentionModelFixed(
-            node_embeddings=self.node_embeddings[key],
-            context_node_projected=self.context_node_projected[key],
-            glimpse_key=self.glimpse_key[:, key],
-            glimpse_val=self.glimpse_val[:, key],
-            logit_key=self.logit_key[key]
-        )
-
 
 
 
@@ -228,6 +228,9 @@ class AttentionModel(nn.Module):
         return self.init_embed(input)
 
     def _inner(self, input, embeddings):
+        from problems.tsp.state_tsp import index_state
+        from nets.attention_model import index_fixed
+    
         outputs = []
         sequences = []
     
@@ -242,11 +245,11 @@ class AttentionModel(nn.Module):
                 unfinished = torch.nonzero(state.get_finished() == 0)
                 if len(unfinished) == 0:
                     break
-                unfinished = unfinished[:, 0]  # Flatten
+                unfinished = unfinished[:, 0]
     
                 if 16 <= len(unfinished) <= state.ids.size(0) - self.shrink_size:
-                    state = index_state(state, unfinished)  # ✅ Use safe function
-                    fixed = fixed[unfinished]               # fixed is a NamedTuple so this is OK
+                    state = index_state(state, unfinished)
+                    fixed = index_fixed(fixed, unfinished)
     
             log_p, mask = self._get_log_p(fixed, state)
     
@@ -266,6 +269,7 @@ class AttentionModel(nn.Module):
             i += 1
     
         return torch.stack(outputs, 1), torch.stack(sequences, 1)
+
 
 
 
