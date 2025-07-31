@@ -30,32 +30,33 @@ class StateTSP(NamedTuple):
     def __getitem__(self, key):
         """
         Batch‐dimension index for StateTSP. Accepts:
-          - int
-          - list of ints
-          - slice
-          - LongTensor
+        - int
+        - list of ints
+        - slice
+        - LongTensor
+        Returns a new StateTSP with selected batch indices.
         """
+        # Avoid accessing .device from self.ids before validating key
         if isinstance(key, int):
-            key = torch.tensor([key], dtype=torch.long, device=self.ids.device)
+            key = torch.tensor([key])
         elif isinstance(key, (list, tuple)):
-            key = torch.tensor(key, dtype=torch.long, device=self.ids.device)
+            key = torch.tensor(key)
         elif isinstance(key, slice):
-            key = torch.arange(self.ids.size(0), device=self.ids.device)[key]
-        elif torch.is_tensor(key):
-            key = key.to(dtype=torch.long, device=self.ids.device)
-        else:
+            key = torch.arange(self.ids.size(0))[key]
+        elif not torch.is_tensor(key):
             raise TypeError(f"Unsupported key type: {type(key)}")
     
+        key = key.to(self.ids.device).long()
+    
         return self._replace(
-            ids       = self.ids[key].view(-1, 1),
-            first_a   = self.first_a[key],
-            prev_a    = self.prev_a[key],
-            visited_  = self.visited_[key],
-            lengths   = self.lengths[key],
-            cur_coord = (self.cur_coord[key] if self.cur_coord is not None else None),
-            i         = self.i[key],
+            ids=self.ids[key].view(-1, 1),
+            first_a=self.first_a[key],
+            prev_a=self.prev_a[key],
+            visited_=self.visited_[key],
+            lengths=self.lengths[key],
+            cur_coord=self.cur_coord[key] if self.cur_coord is not None else None,
+            i=self.i[key],
         )
-
 
     @staticmethod
     def initialize(loc, visited_dtype=torch.uint8):
