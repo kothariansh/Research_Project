@@ -29,18 +29,22 @@ class StateTSP(NamedTuple):
 
     def __getitem__(self, key):
         if isinstance(key, int):
-            key = torch.tensor([key], dtype=torch.long)
+            key = torch.tensor([key], dtype=torch.long, device=self.loc.device)
         elif isinstance(key, list):
-            key = torch.tensor(key, dtype=torch.long)
+            key = torch.tensor(key, dtype=torch.long, device=self.loc.device)
     
         return self._replace(
+            loc=self.loc.index_select(0, key),
+            dist=self.dist.index_select(0, key),
             ids=self.ids.index_select(0, key),
             first_a=self.first_a.index_select(0, key),
             prev_a=self.prev_a.index_select(0, key),
             visited_=self.visited_.index_select(0, key),
             lengths=self.lengths.index_select(0, key),
-            cur_coord=self.cur_coord.index_select(0, key) if self.cur_coord is not None else None
+            cur_coord=self.cur_coord.index_select(0, key) if self.cur_coord is not None else None,
+            i=self.i.index_select(0, key)
         )
+
 
 
 
