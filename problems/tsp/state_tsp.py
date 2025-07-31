@@ -28,31 +28,26 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-        ids    = object.__getattribute__(self, 'ids')
-        device = ids.device
-    
+        # 1) turn ints/lists/slices into a LongTensor of positions
         if isinstance(key, int):
-            key = torch.tensor([key], dtype=torch.long, device=device)
+            key = torch.tensor([key], dtype=torch.long, device=self.ids.device)
         elif isinstance(key, list):
-            key = torch.tensor(key, dtype=torch.long, device=device)
+            key = torch.tensor(key, dtype=torch.long, device=self.ids.device)
         elif isinstance(key, slice):
-            key = torch.arange(ids.size(0), device=device)[key]
+            # build a 1D index tensor from the slice
+            key = torch.arange(self.ids.size(0), device=self.ids.device)[key]
         elif not torch.is_tensor(key):
             raise TypeError(f"Unsupported key type: {type(key)}")
     
-        return StateTSP(
-            loc       = object.__getattribute__(self, 'loc').index_select(0, key),
-            dist      = object.__getattribute__(self, 'dist').index_select(0, key),
-            ids       = ids.index_select(0, key),
-            first_a   = object.__getattribute__(self, 'first_a').index_select(0, key),
-            prev_a    = object.__getattribute__(self, 'prev_a').index_select(0, key),
-            visited_  = object.__getattribute__(self, 'visited_').index_select(0, key),
-            lengths   = object.__getattribute__(self, 'lengths').index_select(0, key),
-            cur_coord = (
-                object.__getattribute__(self, 'cur_coord').index_select(0, key)
-                if object.__getattribute__(self, 'cur_coord') is not None else None
-            ),
-            i         = object.__getattribute__(self, 'i').index_select(0, key),
+        # 2) _replace only the batch-first fields; loc/dist/distances stay shared
+        return self._replace(
+            ids       = self.ids[key],
+            first_a   = self.first_a[key],
+            prev_a    = self.prev_a[key],
+            visited_  = self.visited_[key],
+            lengths   = self.lengths[key],
+            cur_coord = self.cur_coord[key] if self.cur_coord is not None else None,
+            i         = self.i[key],
         )
 
 
