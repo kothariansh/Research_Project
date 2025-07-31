@@ -34,13 +34,14 @@ class StateTSP(NamedTuple):
             key = torch.tensor(key, dtype=torch.long)
     
         return self._replace(
-            ids=self.__dict__["ids"].index_select(0, key),
-            first_a=self.__dict__["first_a"].index_select(0, key),
-            prev_a=self.__dict__["prev_a"].index_select(0, key),
-            visited_=self.__dict__["visited_"].index_select(0, key),
-            lengths=self.__dict__["lengths"].index_select(0, key),
-            cur_coord=self.__dict__["cur_coord"].index_select(0, key) if self.cur_coord is not None else None
+            ids=self.ids.index_select(0, key),
+            first_a=self.first_a.index_select(0, key),
+            prev_a=self.prev_a.index_select(0, key),
+            visited_=self.visited_.index_select(0, key),
+            lengths=self.lengths.index_select(0, key),
+            cur_coord=self.cur_coord.index_select(0, key) if self.cur_coord is not None else None
         )
+
 
 
     @staticmethod
