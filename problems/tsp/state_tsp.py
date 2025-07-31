@@ -28,15 +28,29 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-        assert torch.is_tensor(key) or isinstance(key, slice)  # If tensor, idx all tensors by this tensor:
-        return self._replace(
-            ids=self.ids[key],
-            first_a=self.first_a[key],
-            prev_a=self.prev_a[key],
-            visited_=self.visited_[key],
-            lengths=self.lengths[key],
-            cur_coord=self.cur_coord[key] if self.cur_coord is not None else None,
+        # Convert int or list to tensor
+        if isinstance(key, int):
+            key = torch.tensor([key], dtype=torch.long, device=self.ids.device)
+        elif isinstance(key, list):
+            key = torch.tensor(key, dtype=torch.long, device=self.ids.device)
+        elif isinstance(key, slice):
+            # Use a range slice on existing indices
+            key = torch.arange(self.ids.size(0), device=self.ids.device)[key]
+        elif not torch.is_tensor(key):
+            raise TypeError(f"Unsupported key type: {type(key)}")
+    
+        return StateTSP(
+            loc=self.loc.index_select(0, key),
+            dist=self.dist.index_select(0, key),
+            ids=self.ids.index_select(0, key),
+            first_a=self.first_a.index_select(0, key),
+            prev_a=self.prev_a.index_select(0, key),
+            visited_=self.visited_.index_select(0, key),
+            lengths=self.lengths.index_select(0, key),
+            cur_coord=self.cur_coord.index_select(0, key) if self.cur_coord is not None else None,
+            i=self.i.index_select(0, key)
         )
+
 
     @staticmethod
     def initialize(loc, visited_dtype=torch.uint8):
