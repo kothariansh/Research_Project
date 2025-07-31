@@ -28,28 +28,31 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-        # Convert int or list to tensor
+        # Avoid recursion by using __getattribute__ from NamedTuple
+        ids = super().__getattribute__('ids')
+    
         if isinstance(key, int):
-            key = torch.tensor([key], dtype=torch.long, device=self.ids.device)
+            key = torch.tensor([key], dtype=torch.long, device=ids.device)
         elif isinstance(key, list):
-            key = torch.tensor(key, dtype=torch.long, device=self.ids.device)
+            key = torch.tensor(key, dtype=torch.long, device=ids.device)
         elif isinstance(key, slice):
-            # Use a range slice on existing indices
-            key = torch.arange(self.ids.size(0), device=self.ids.device)[key]
+            key = torch.arange(ids.size(0), device=ids.device)[key]
         elif not torch.is_tensor(key):
             raise TypeError(f"Unsupported key type: {type(key)}")
     
         return StateTSP(
-            loc=self.loc.index_select(0, key),
-            dist=self.dist.index_select(0, key),
-            ids=self.ids.index_select(0, key),
-            first_a=self.first_a.index_select(0, key),
-            prev_a=self.prev_a.index_select(0, key),
-            visited_=self.visited_.index_select(0, key),
-            lengths=self.lengths.index_select(0, key),
-            cur_coord=self.cur_coord.index_select(0, key) if self.cur_coord is not None else None,
-            i=self.i.index_select(0, key)
+            loc=super().__getattribute__('loc').index_select(0, key),
+            dist=super().__getattribute__('dist').index_select(0, key),
+            ids=ids.index_select(0, key),
+            first_a=super().__getattribute__('first_a').index_select(0, key),
+            prev_a=super().__getattribute__('prev_a').index_select(0, key),
+            visited_=super().__getattribute__('visited_').index_select(0, key),
+            lengths=super().__getattribute__('lengths').index_select(0, key),
+            cur_coord=super().__getattribute__('cur_coord').index_select(0, key)
+                if super().__getattribute__('cur_coord') is not None else None,
+            i=super().__getattribute__('i').index_select(0, key)
         )
+
 
 
     @staticmethod
