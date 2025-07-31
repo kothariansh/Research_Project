@@ -2,6 +2,31 @@ import torch
 from typing import NamedTuple
 from utils.boolmask import mask_long2bool, mask_long_scatter
 
+def index_state(state, key):
+    """
+    Safely index into a StateTSP object.
+    """
+    if isinstance(key, int):
+        key = torch.tensor([key])
+    elif isinstance(key, (list, tuple)):
+        key = torch.tensor(key)
+    elif isinstance(key, slice):
+        key = torch.arange(state.ids.size(0))[key]
+    elif not torch.is_tensor(key):
+        raise TypeError(f"Unsupported key type: {type(key)}")
+
+    key = key.to(state.ids.device).long()
+
+    return state._replace(
+        ids=state.ids[key].view(-1, 1),
+        first_a=state.first_a[key],
+        prev_a=state.prev_a[key],
+        visited_=state.visited_[key],
+        lengths=state.lengths[key],
+        cur_coord=state.cur_coord[key] if state.cur_coord is not None else None,
+        i=state.i[key],
+    )
+
 
 class StateTSP(NamedTuple):
     # Fixed input
@@ -27,36 +52,7 @@ class StateTSP(NamedTuple):
         else:
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
-    def __getitem__(self, key):
-        """
-        Batch‐dimension index for StateTSP. Accepts:
-        - int
-        - list of ints
-        - slice
-        - LongTensor
-        Returns a new StateTSP with selected batch indices.
-        """
-        # Avoid accessing .device from self.ids before validating key
-        if isinstance(key, int):
-            key = torch.tensor([key])
-        elif isinstance(key, (list, tuple)):
-            key = torch.tensor(key)
-        elif isinstance(key, slice):
-            key = torch.arange(self.ids.size(0))[key]
-        elif not torch.is_tensor(key):
-            raise TypeError(f"Unsupported key type: {type(key)}")
-    
-        key = key.to(self.ids.device).long()
-    
-        return self._replace(
-            ids=self.ids[key].view(-1, 1),
-            first_a=self.first_a[key],
-            prev_a=self.prev_a[key],
-            visited_=self.visited_[key],
-            lengths=self.lengths[key],
-            cur_coord=self.cur_coord[key] if self.cur_coord is not None else None,
-            i=self.i[key],
-        )
+
 
     @staticmethod
     def initialize(loc, visited_dtype=torch.uint8):
