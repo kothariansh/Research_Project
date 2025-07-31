@@ -34,9 +34,7 @@ class StateTSP(NamedTuple):
           - list of ints
           - slice
           - LongTensor
-        Uses NamedTuple._replace to slice batch‐first fields only.
         """
-        # Normalize key → 1D LongTensor of batch indices
         if isinstance(key, int):
             key = torch.tensor([key], dtype=torch.long, device=self.ids.device)
         elif isinstance(key, (list, tuple)):
@@ -44,13 +42,12 @@ class StateTSP(NamedTuple):
         elif isinstance(key, slice):
             key = torch.arange(self.ids.size(0), device=self.ids.device)[key]
         elif torch.is_tensor(key):
-            # assume it’s already LongTensor
-            pass
+            key = key.to(dtype=torch.long, device=self.ids.device)
         else:
             raise TypeError(f"Unsupported key type: {type(key)}")
     
         return self._replace(
-            ids       = self.ids[key].view(-1, 1),  # Prevent shape issues
+            ids       = self.ids[key].view(-1, 1),
             first_a   = self.first_a[key],
             prev_a    = self.prev_a[key],
             visited_  = self.visited_[key],
@@ -58,6 +55,7 @@ class StateTSP(NamedTuple):
             cur_coord = (self.cur_coord[key] if self.cur_coord is not None else None),
             i         = self.i[key],
         )
+
 
     @staticmethod
     def initialize(loc, visited_dtype=torch.uint8):
