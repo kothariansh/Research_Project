@@ -28,21 +28,23 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
+        key_tensor = key
         if isinstance(key, int):
-            key = torch.tensor([key], dtype=torch.long, device=self.loc.device)
+            key_tensor = torch.tensor([key], dtype=torch.long, device=self.loc.device)
         elif isinstance(key, list):
-            key = torch.tensor(key, dtype=torch.long, device=self.loc.device)
+            key_tensor = torch.tensor(key, dtype=torch.long, device=self.loc.device)
     
-        return self._replace(
-            loc=self.loc.index_select(0, key),
-            dist=self.dist.index_select(0, key),
-            ids=self.ids.index_select(0, key),
-            first_a=self.first_a.index_select(0, key),
-            prev_a=self.prev_a.index_select(0, key),
-            visited_=self.visited_.index_select(0, key),
-            lengths=self.lengths.index_select(0, key),
-            cur_coord=self.cur_coord.index_select(0, key) if self.cur_coord is not None else None,
-            i=self.i.index_select(0, key)
+        # Access fields directly to avoid recursion
+        return StateTSP(
+            loc=self.loc.index_select(0, key_tensor),
+            dist=self.dist.index_select(0, key_tensor),
+            ids=self.ids.index_select(0, key_tensor),
+            first_a=self.first_a.index_select(0, key_tensor),
+            prev_a=self.prev_a.index_select(0, key_tensor),
+            visited_=self.visited_.index_select(0, key_tensor),
+            lengths=self.lengths.index_select(0, key_tensor),
+            cur_coord=self.cur_coord.index_select(0, key_tensor) if self.cur_coord is not None else None,
+            i=self.i.index_select(0, key_tensor),
         )
 
 
