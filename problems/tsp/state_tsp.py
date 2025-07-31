@@ -28,27 +28,26 @@ class StateTSP(NamedTuple):
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
     def __getitem__(self, key):
-        # Use one of the raw tuple fields to extract device
-        device = self.ids.device
-    
         if isinstance(key, int):
-            key_tensor = torch.tensor([key], dtype=torch.long, device=device)
+            key_tensor = torch.tensor([key], dtype=torch.long, device=self.__getattribute__('ids').device)
         elif isinstance(key, list):
-            key_tensor = torch.tensor(key, dtype=torch.long, device=device)
+            key_tensor = torch.tensor(key, dtype=torch.long, device=self.__getattribute__('ids').device)
         else:
-            key_tensor = key  # Already a tensor
+            key_tensor = key  # assume already tensor
     
         return StateTSP(
-            loc=self.loc.index_select(0, key_tensor),
-            dist=self.dist.index_select(0, key_tensor),
-            ids=self.ids.index_select(0, key_tensor),
-            first_a=self.first_a.index_select(0, key_tensor),
-            prev_a=self.prev_a.index_select(0, key_tensor),
-            visited_=self.visited_.index_select(0, key_tensor),
-            lengths=self.lengths.index_select(0, key_tensor),
-            cur_coord=self.cur_coord.index_select(0, key_tensor) if self.cur_coord is not None else None,
-            i=self.i.index_select(0, key_tensor),
+            loc=self.__getattribute__('loc').index_select(0, key_tensor),
+            dist=self.__getattribute__('dist').index_select(0, key_tensor),
+            ids=self.__getattribute__('ids').index_select(0, key_tensor),
+            first_a=self.__getattribute__('first_a').index_select(0, key_tensor),
+            prev_a=self.__getattribute__('prev_a').index_select(0, key_tensor),
+            visited_=self.__getattribute__('visited_').index_select(0, key_tensor),
+            lengths=self.__getattribute__('lengths').index_select(0, key_tensor),
+            cur_coord=self.__getattribute__('cur_coord').index_select(0, key_tensor)
+                if self.__getattribute__('cur_coord') is not None else None,
+            i=self.__getattribute__('i').index_select(0, key_tensor)
         )
+
 
 
 
