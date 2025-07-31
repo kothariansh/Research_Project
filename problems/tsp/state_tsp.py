@@ -27,34 +27,39 @@ class StateTSP(NamedTuple):
         else:
             return mask_long2bool(self.visited_, n=self.loc.size(-2))
 
-        def __getitem__(self, key):
-            """
-            Batch‐dimension index for StateTSP. Accepts int, list[int], slice, or LongTensor.
-            Slices only the batch‐first fields via NamedTuple._replace, sharing loc/dist.
-            """
-            # 1) Normalize key → a 1D LongTensor of batch indices
-            if isinstance(key, int):
-                key = torch.tensor([key], dtype=torch.long, device=self.ids.device)
-            elif isinstance(key, list):
-                key = torch.tensor(key,      dtype=torch.long, device=self.ids.device)
-            elif isinstance(key, slice):
-                key = torch.arange(self.ids.size(0), device=self.ids.device)[key]
-            elif torch.is_tensor(key):
-                # assume already a LongTensor of indices
-                pass
-            else:
-                raise TypeError(f"Unsupported key type: {type(key)}")
+    def __getitem__(self, key):
+        """
+        Batch‐dimension index for StateTSP. Accepts:
+          - int
+          - list of ints
+          - slice
+          - LongTensor
+        Uses NamedTuple._replace to slice batch‐first fields only.
+        """
+        # 1) Normalize key → 1D LongTensor of batch indices
+        if isinstance(key, int):
+            key = torch.tensor([key], dtype=torch.long, device=self.ids.device)
+        elif isinstance(key, (list, tuple)):
+            key = torch.tensor(key, dtype=torch.long, device=self.ids.device)
+        elif isinstance(key, slice):
+            key = torch.arange(self.ids.size(0), device=self.ids.device)[key]
+        elif torch.is_tensor(key):
+            # assume it’s already LongTensor
+            pass
+        else:
+            raise TypeError(f"Unsupported key type: {type(key)}")
     
-            # 2) Slice each Tensor field. This calls Tensor.__getitem__, not StateTSP.__getitem__
-            return self._replace(
-                ids       = self.ids[key],
-                first_a   = self.first_a[key],
-                prev_a    = self.prev_a[key],
-                visited_  = self.visited_[key],
-                lengths   = self.lengths[key],
-                cur_coord = (self.cur_coord[key] if self.cur_coord is not None else None),
-                i         = self.i[key],
-            )
+        # 2) _replace only the batch‐first fields; loc/dist stay shared
+        return self._replace(
+            ids       = self.ids[key],
+            first_a   = self.first_a[key],
+            prev_a    = self.prev_a[key],
+            visited_  = self.visited_[key],
+            lengths   = self.lengths[key],
+            cur_coord = (self.cur_coord[key] if self.cur_coord is not None else None),
+            i         = self.i[key],
+        )
+
 
     @staticmethod
     def initialize(loc, visited_dtype=torch.uint8):
