@@ -222,49 +222,45 @@ class AttentionModel(nn.Module):
         return self.init_embed(input)
 
     def _inner(self, input, embeddings):
-        outputs = []
-        sequences = []
-    
-        state = self.problem.make_state(input)
-    
-        # Compute keys, values for the glimpse and keys for the logits once as they can be reused in every step
-        fixed = self._precompute(embeddings)
-    
-        batch_size = state.ids.size(0)
-    
-        i = 0
-        while not (self.shrink_size is None and state.all_finished()):
-    
-            if self.shrink_size is not None:
-                unfinished = torch.nonzero(state.get_finished() == 0)
-                if len(unfinished) == 0:
-                    break
-                unfinished = unfinished[:, 0]  # ✅ flatten 2D tensor to 1D
-    
-                # ✅ Check if we can shrink
-                if 16 <= len(unfinished) <= state.ids.size(0) - self.shrink_size:
-                    state = state[unfinished]         # ✅ avoid recursion issue
-                    fixed = fixed[unfinished]         # ✅ match indexing
-    
-            log_p, mask = self._get_log_p(fixed, state)
-    
-            selected = self._select_node(log_p.exp()[:, 0, :], mask[:, 0, :])
-            state = state.update(selected)
-    
-            # Unshrink if needed
-            if self.shrink_size is not None and state.ids.size(0) < batch_size:
-                log_p_, selected_ = log_p, selected
-                log_p = log_p_.new_zeros(batch_size, *log_p_.size()[1:])
-                selected = selected_.new_zeros(batch_size)
-    
-                log_p[state.ids[:, 0]] = log_p_
-                selected[state.ids[:, 0]] = selected_
-    
-            outputs.append(log_p[:, 0, :])
-            sequences.append(selected)
-            i += 1
-    
-        return torch.stack(outputs, 1), torch.stack(sequences, 1)
+    outputs = []
+    sequences = []
+
+    state = self.problem.make_state(input)
+    fixed = self._precompute(embeddings)
+    batch_size = state.ids.size(0)
+
+    i = 0
+    while not (self.shrink_size is None and state.all_finished()):
+
+        if self.shrink_size is not None:
+            unfinished = torch.nonzero(state.get_finished() == 0)
+            if len(unfinished) == 0:
+                break
+            unfinished = unfinished[:, 0]  # Flatten
+
+            if 16 <= len(unfinished) <= state.ids.size(0) - self.shrink_size:
+                state = index_state(state, unfinished)  # ✅ Use safe function
+                fixed = fixed[unfinished]               # fixed is a NamedTuple so this is OK
+
+        log_p, mask = self._get_log_p(fixed, state)
+
+        selected = self._select_node(log_p.exp()[:, 0, :], mask[:, 0, :])
+        state = state.update(selected)
+
+        if self.shrink_size is not None and state.ids.size(0) < batch_size:
+            log_p_, selected_ = log_p, selected
+            log_p = log_p_.new_zeros(batch_size, *log_p_.size()[1:])
+            selected = selected_.new_zeros(batch_size)
+
+            log_p[state.ids[:, 0]] = log_p_
+            selected[state.ids[:, 0]] = selected_
+
+        outputs.append(log_p[:, 0, :])
+        sequences.append(selected)
+        i += 1
+
+    return torch.stack(outputs, 1), torch.stack(sequences, 1)
+
 
 
     def sample_many(self, input, batch_rep=1, iter_rep=1):
